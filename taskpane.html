@@ -1,0 +1,2322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Citation Helper</title>
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+:root { --paper: #f4f0e6; --sheet: #fffdf8; --ink: #18202f; --ink-2: #5b6273; --ink-3: #8a8f9b; --rule: #ddd5c3; --accent: #8c2331; --navy: #1f2d4f; --navy-soft: #e5e8f1;
+  --ok: #2f6f48; --ok-soft: #e2efe5; --fix: #96600c; --fix-soft: #f8ecd3; --rev: #a3262a; --rev-soft: #f8e1df; --ins: #d7ecdc; --del: #f6d9d5; }
+@media (prefers-color-scheme: dark) { :root { --paper: #11141c; --sheet: #1b2030; --ink: #ece8df; --ink-2: #a9adb8; --ink-3: #7a7f8c; --rule: #2e3445; --accent: #e98a92; --navy: #b9c6ea; --navy-soft: #252d45;
+  --ok: #86cf9f; --ok-soft: #1b3326; --fix: #ecb866; --fix-soft: #3a2d15; --rev: #ff9b93; --rev-soft: #3e1f1f; --ins: #1e3a29; --del: #46221f; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.5 "Segoe UI", system-ui, sans-serif; }
+header { padding: 14px 14px 10px; border-bottom: 3px double var(--rule); }
+h1 { font: 600 22px/1.1 Georgia, "Times New Roman", serif; margin: 0; } h1 span { color: var(--accent); font-style: italic; margin-right: 6px; }
+header p { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+nav { display: flex; gap: 16px; padding: 0 14px; border-bottom: 1px solid var(--rule); }
+nav button { font: inherit; border: 0; background: none; color: var(--ink-2); padding: 9px 0; cursor: pointer; border-bottom: 2px solid transparent; }
+nav button[aria-selected="true"] { color: var(--ink); border-color: var(--accent); }
+main { padding: 14px; }
+.btn { font: inherit; font-weight: 600; border: 1px solid var(--navy); background: var(--navy); color: var(--paper); padding: 7px 12px; border-radius: 6px; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+.btn.small { font-size: 12.5px; padding: 4px 9px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+textarea { width: 100%; min-height: 84px; font: 14px/1.5 Georgia, serif; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--sheet); color: var(--ink); }
+.cite { font: 15px/1.55 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.card { background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.card.ok { border-left: 3px solid var(--ok); } .card.fix { border-left: 3px solid var(--fix); } .card.review { border-left: 3px solid var(--rev); }
+.pill { font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 8px; }
+.pill.ok { color: var(--ok); background: var(--ok-soft); } .pill.fix { color: var(--fix); background: var(--fix-soft); } .pill.review { color: var(--rev); background: var(--rev-soft); }
+.num { font: italic 600 17px Georgia, serif; color: var(--accent); margin-right: 6px; }
+.diff { font: 13.5px/1.6 Georgia, serif; color: var(--ink-2); overflow-wrap: anywhere; margin: 6px 0; }
+.diff del { background: var(--del); color: var(--ink); } .diff ins { background: var(--ins); color: var(--ink); text-decoration: none; }
+ul.notes { list-style: none; padding: 0; margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); }
+ul.notes li { margin: 2px 0; } .tag { font: 11px ui-monospace, Menlo, monospace; background: var(--navy-soft); color: var(--navy); border-radius: 3px; padding: 0 4px; margin-right: 4px; }
+.status { font-size: 12.5px; color: var(--ink-2); margin: 8px 0; min-height: 1.2em; }
+.summary { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+</style>
+</head>
+<body>
+<header><h1><span>§</span>Citation Helper</h1><p>The Indigo Book 2.0 · runs inside Word, nothing is sent anywhere</p></header>
+<nav role="tablist"><button role="tab" id="t-check" aria-selected="true">Check footnotes</button><button role="tab" id="t-insert" aria-selected="false">Insert citation</button></nav>
+<main>
+  <section id="v-check">
+    <div class="row"><button class="btn" id="scan">Check all footnotes</button><button class="btn ghost" id="applyAll" hidden>Apply all fixes</button></div>
+    <div class="status" id="status"></div>
+    <div class="summary" id="summary"></div>
+    <div id="results"></div>
+  </section>
+  <section id="v-insert" hidden>
+    <textarea id="in" placeholder="Paste a rough citation, a URL or a statute"></textarea>
+    <div class="card"><div class="cite" id="out"></div><ul class="notes" id="notes"></ul></div>
+    <div class="row"><button class="btn" id="insertFn">Insert as footnote here</button></div>
+    <div class="status" id="status2"></div>
+  </section>
+</main>
+<script>window.CITE_DATA = {
+"T11": {
+"Academic": "Acad.",
+"Academy": "Acad.",
+"Accountant": "Acct.",
+"Accounting": "Acct.",
+"Accountancy": "Acct.",
+"Administrative": "Admin.",
+"Administration": "Admin.",
+"Administrator": "Adm’r",
+"Administratrix": "Adm’x",
+"Advertising": "Advert.",
+"Advocate": "Advoc.",
+"Advocacy": "Advoc.",
+"Affair": "Aff.",
+"Africa": "Afr.",
+"African": "Afr.",
+"Agriculture": "Agric.",
+"Agricultural": "Agric.",
+"Alliance": "All.",
+"Alternative": "Alt.",
+"Amendment": "Amend.",
+"America": "Am.",
+"American": "Am.",
+"Appellate": "App.",
+"Arbitration": "Arb.",
+"Arbitrator": "Arb.",
+"Associate": "Assoc.",
+"Association": "Ass’n",
+"Atlantic": "Atl.",
+"Attorney": "Att’y",
+"Authority": "Auth.",
+"Automobile": "Auto.",
+"Automotive": "Auto.",
+"Avenue": "Ave.",
+"Bankruptcy": "Bankr.",
+"Behavior": "Behav.",
+"Behavioral": "Behav.",
+"Board": "Bd.",
+"Broadcaster": "Broad.",
+"Broadcasting": "Broad.",
+"Brotherhood": "Bhd.",
+"Brothers": "Bros.",
+"Building": "Bldg.",
+"Business": "Bus.",
+"Businesses": "Bus.",
+"Capital": "Cap.",
+"Casualty": "Cas.",
+"Casualties": "Cas.",
+"Catholic": "Cath.",
+"Center": "Ctr.",
+"Centre": "Ctr.",
+"Central": "Cent.",
+"Chemical": "Chem.",
+"Children": "Child.",
+"Circuit": "Cir.",
+"Coalition": "Coal.",
+"College": "Coll.",
+"Commission": "Comm’n",
+"Commissioner": "Comm’r",
+"Committee": "Comm.",
+"Communication": "Commc’n",
+"Community": "Cmty.",
+"Company": "Co.",
+"Comparative": "Compar.",
+"Compensation": "Comp.",
+"Computer": "Comput.",
+"Computing": "Comput.",
+"Computational": "Comput.",
+"Condominium": "Condo.",
+"Conference": "Conf.",
+"Congress": "Cong.",
+"Congressional": "Cong.",
+"Consolidated": "Consol.",
+"Construction": "Constr.",
+"Contemporary": "Contemp.",
+"Continental": "Cont’l",
+"Contract": "Cont.",
+"Conveyance": "Conv.",
+"Conveyancer": "Conv.",
+"Cooperation": "Coop.",
+"Cooperative": "Coop.",
+"Corporate": "Corp.",
+"Corporation": "Corp.",
+"Corrections": "Corr.",
+"Correctional": "Corr.",
+"Cosmetic": "Cosm.",
+"Counselor": "Couns.",
+"Counselors": "Couns.",
+"Counselor’s": "Couns.",
+"Counseling": "Couns.",
+"County": "Cty.",
+"Defend": "Def.",
+"Defender": "Def.",
+"Defense": "Def.",
+"Defensive": "Def.",
+"Delinquent": "Delinq.",
+"Delinquency": "Delinq.",
+"Department": "Dep’t",
+"Detention": "Det.",
+"Developer": "Dev.",
+"Development": "Dev.",
+"Digital": "Digit.",
+"Diplomacy": "Dipl.",
+"Director": "Dir.",
+"Discount": "Disc.",
+"Dispute": "Disp.",
+"Distributor": "Distrib.",
+"Distributing": "Distrib.",
+"Distribution": "Distrib.",
+"District": "Dist.",
+"Division": "Div.",
+"Doctor": "Dr.",
+"East": "E.",
+"Eastern": "E.",
+"Economic": "Econ.",
+"Economical": "Econ.",
+"Economics": "Econ.",
+"Economy": "Econ.",
+"Editor": "Ed.",
+"Editorial": "Ed.",
+"Educate": "Educ.",
+"Education": "Educ.",
+"Educating": "Educ.",
+"Educational": "Educ.",
+"Educator": "Educ.",
+"Electric": "Elec.",
+"Electrical": "Elec.",
+"Electricity": "Elec.",
+"Electronic": "Elec.",
+"Employee": "Emp.",
+"Employer": "Emp.",
+"Employment": "Emp.",
+"Enforcement": "Enf’t",
+"Engineer": "Eng’r",
+"Engineering": "Eng’g",
+"English": "Eng.",
+"Enterprise": "Enter.",
+"Entertainment": "Ent.",
+"Environment": "Env’t",
+"Environmental": "Env’t",
+"Equality": "Equal.",
+"Equipment": "Equip.",
+"Estate": "Est.",
+"Examiner": "Exam’r",
+"Exchange": "Exch.",
+"Executive": "Exec.",
+"Executor": "Ex’r",
+"Executrix": "Ex’x",
+"Exploration": "Expl.",
+"Exploratory": "Expl.",
+"Exporter": "Exp.",
+"Exportation": "Exp.",
+"Faculty": "Fac.",
+"Federal": "Fed.",
+"Federation": "Fed’n",
+"Fidelity": "Fid.",
+"Finance": "Fin.",
+"Financial": "Fin.",
+"Financing": "Fin.",
+"Foundation": "Found.",
+"General": "Gen.",
+"Global": "Glob.",
+"Government": "Gov’t",
+"Group": "Grp.",
+"Guaranty": "Guar.",
+"Guarantor": "Guar.",
+"Hispanic": "Hisp.",
+"Historical": "Hist.",
+"History": "Hist.",
+"Hospital": "Hosp.",
+"Hospitality": "Hosp.",
+"Housing": "Hous.",
+"Human": "Hum.",
+"Import": "Imp.",
+"Importer": "Imp.",
+"Importation": "Imp.",
+"Incorporated": "Inc.",
+"Indemnity": "Indem.",
+"Independence": "Indep.",
+"Independent": "Indep.",
+"Industry": "Indus.",
+"Industries": "Indus.",
+"Industrial": "Indus.",
+"Inequality": "Ineq.",
+"Information": "Info.",
+"Institute": "Inst.",
+"Institution": "Inst.",
+"Insurance": "Ins.",
+"Intellectual": "Intell.",
+"Intelligence": "Intel.",
+"Interdisciplinary": "Interdisc.",
+"International": "Int’l",
+"Investment": "Inv.",
+"Investor": "Inv.",
+"Judicial": "Jud.",
+"Juridicial": "Jurid.",
+"Jurisprudence": "Juris.",
+"Justice": "Just.",
+"Juvenile": "Juv.",
+"Labor": "Lab.",
+"Laboratory": "Lab.",
+"Lawyer": "Law.",
+"Legislate": "Legis.",
+"Legislation": "Legis.",
+"Legislative": "Legis.",
+"Liability": "Liab.",
+"Library": "Libr.",
+"Librarian": "Libr.",
+"Limited": "Ltd.",
+"Litigation": "Litig.",
+"Machine": "Mach.",
+"Machinery": "Mach.",
+"Maintenance": "Maint.",
+"Management": "Mgmt.",
+"Manufacturer": "Mfr.",
+"Manufacturing": "Mfg.",
+"Maritime": "Mar.",
+"Market": "Mkt.",
+"Marketing": "Mktg.",
+"Matrimonial": "Matrim.",
+"Mechanic": "Mech.",
+"Mechanical": "Mech.",
+"Medical": "Med.",
+"Medicinal": "Med.",
+"Medicine": "Med.",
+"Memorial": "Mem’l",
+"Merchant": "Merch.",
+"Merchandise": "Merch.",
+"Merchandising": "Merch.",
+"Metropolitan": "Metro.",
+"Military": "Mil.",
+"Mineral": "Min.",
+"Modern": "Mod.",
+"Mortgage": "Mortg.",
+"Municipal": "Mun.",
+"Municipality": "Mun.",
+"Mutual": "Mut.",
+"National": "Nat’l",
+"Nationality": "Nat’y",
+"Natural": "Nat.",
+"Negligence": "Negl.",
+"Negotiation": "Negot.",
+"Negotiator": "Negot.",
+"North": "N.",
+"Northern": "N.",
+"Northeast": "Ne.",
+"Northeastern": "Ne.",
+"Northwest": "Nw.",
+"Northwestern": "Nw.",
+"Office": "Off.",
+"Official": "Off.",
+"Organization": "Org.",
+"Organizing": "Org.",
+"Pacific": "Pac.",
+"Parish": "Par.",
+"Partnership": "P’ship",
+"Patent": "Pat.",
+"Person": "Pers.",
+"Personal": "Pers.",
+"Personnel": "Pers.",
+"Pharmaceutic": "Pharm.",
+"Pharmaceutical": "Pharm.",
+"Philosophical": "Phil.",
+"Philosophy": "Phil.",
+"Planning": "Plan.",
+"Policy": "Pol’y",
+"Politic": "Pol.",
+"Political": "Pol.",
+"Politics": "Pol.",
+"Practical": "Prac.",
+"Practice": "Prac.",
+"Practitioner": "Prac.",
+"Preserve": "Pres.",
+"Preservation": "Pres.",
+"Privacy": "Priv.",
+"Private": "Priv.",
+"Probate": "Prob.",
+"Probation": "Prob.",
+"Procedure": "Proc.",
+"Product": "Prod.",
+"Production": "Prod.",
+"Protection": "Prot.",
+"Psychological": "Psych.",
+"Psychologist": "Psych.",
+"Psychology": "Psych.",
+"Public": "Pub.",
+"Publication": "Publ’n",
+"Publishing": "Publ’g",
+"Railroad": "R.R.",
+"Railway": "Ry.",
+"Referee": "Ref.",
+"Refining": "Refin.",
+"Refinement": "Refin.",
+"Regional": "Reg’l",
+"Regulation": "Regul.",
+"Regulator": "Regul.",
+"Regulatory": "Regul.",
+"Rehabilitation": "Rehab.",
+"Rehabilitative": "Rehab.",
+"Relation": "Rel.",
+"Reproduction": "Reprod.",
+"Reproductive": "Reprod.",
+"Research": "Rsch.",
+"Reservation": "Rsrv.",
+"Reserve": "Rsrv.",
+"Resolution": "Resol.",
+"Resource": "Res.",
+"Resources": "Res.",
+"Responsibility": "Resp.",
+"Restaurant": "Rest.",
+"Retirement": "Ret.",
+"Rights": "Rts.",
+"Road": "Rd.",
+"Savings": "Sav.",
+"School": "Sch.",
+"Science": "Sci.",
+"Scientific": "Sci.",
+"Scottish": "Scot.",
+"Secretary": "Sec’y",
+"Security": "Sec.",
+"Securities": "Sec.",
+"Sentencing": "Sent’g",
+"Service": "Serv.",
+"Shareholder": "S’holder",
+"Stockholder": "S’holder",
+"Social": "Soc.",
+"Society": "Soc’y",
+"Sociological": "Socio.",
+"Sociology": "Socio.",
+"Solicitor": "Solic.",
+"Solution": "Sol.",
+"South": "S.",
+"Southern": "S.",
+"Southeast": "Se.",
+"Southeastern": "Se.",
+"Southwest": "Sw.",
+"Southwestern": "Sw.",
+"Statistic": "Stat.",
+"Statistics": "Stat.",
+"Statistical": "Stat.",
+"Steamship": "S.S.",
+"Steamships": "S.S.",
+"Street": "St.",
+"Subcommittee": "Subcomm.",
+"Surety": "Sur.",
+"System": "Sys.",
+"Systems": "Sys.",
+"Taxation": "Tax’n",
+"Teacher": "Tchr.",
+"Technical": "Tech.",
+"Technique": "Tech.",
+"Technological": "Tech.",
+"Technology": "Tech.",
+"Telecommunication": "Telecomm.",
+"Telephone": "Tel.",
+"Telegraph": "Tel.",
+"Temporary": "Temp.",
+"Township": "Twp.",
+"Transcontinental": "Transcon.",
+"Transnational": "Transnat’l",
+"Transport": "Transp.",
+"Transportation": "Transp.",
+"Trust": "Tr.",
+"Trustee": "Tr.",
+"Turnpike": "Tpk.",
+"Uniform": "Unif.",
+"University": "Univ.",
+"Urban": "Urb.",
+"Utility": "Util.",
+"Village": "Vill.",
+"West": "W.",
+"Western": "W."
+},
+"STATES": {
+"Alabama": "Ala.",
+"Alaska": "Alaska",
+"Arizona": "Ariz.",
+"Arkansas": "Ark.",
+"California": "Cal.",
+"Colorado": "Colo.",
+"Connecticut": "Conn.",
+"Delaware": "Del.",
+"Florida": "Fla.",
+"Georgia": "Ga.",
+"Hawaii": "Haw.",
+"Idaho": "Idaho",
+"Illinois": "Ill.",
+"Indiana": "Ind.",
+"Iowa": "Iowa",
+"Kansas": "Kan.",
+"Kentucky": "Ky.",
+"Louisiana": "La.",
+"Maine": "Me.",
+"Maryland": "Md.",
+"Massachusetts": "Mass.",
+"Michigan": "Mich.",
+"Minnesota": "Minn.",
+"Mississippi": "Miss.",
+"Missouri": "Mo.",
+"Montana": "Mont.",
+"Nebraska": "Neb.",
+"Nevada": "Nev.",
+"New Hampshire": "N.H.",
+"New Jersey": "N.J.",
+"New Mexico": "N.M.",
+"North Carolina": "N.C.",
+"North Dakota": "N.D.",
+"Ohio": "Ohio",
+"Oklahoma": "Okla.",
+"Oregon": "Or.",
+"Pennsylvania": "Pa.",
+"Rhode Island": "R.I.",
+"South Carolina": "S.C.",
+"South Dakota": "S.D.",
+"Tennessee": "Tenn.",
+"Texas": "Tex.",
+"Utah": "Utah",
+"Vermont": "Vt.",
+"Virginia": "Va.",
+"Washington": "Wash.",
+"West Virginia": "W. Va.",
+"Wisconsin": "Wis.",
+"Wyoming": "Wyo.",
+"District of Columbia": "D.C.",
+"American Samoa": "Am. Sam.",
+"Guam": "Guam",
+"Northern Mariana Islands": "N. Mar. I.",
+"Puerto Rico": "P.R.",
+"Virgin Islands": "V.I.",
+"New York": "N.Y."
+},
+"CITIES": {
+"Baltimore": "Balt.",
+"Boston": "Bos.",
+"Chicago": "Chi.",
+"Dallas": "Dall.",
+"Houston": "Hous.",
+"Los Angeles": "L.A.",
+"Miami": "Mia.",
+"Philadelphia": "Phila.",
+"Phoenix": "Phx.",
+"San Francisco": "S.F."
+},
+"MONTHS": {
+"January": "Jan.",
+"February": "Feb.",
+"March": "Mar.",
+"April": "Apr.",
+"May": "May",
+"June": "June",
+"July": "July",
+"August": "Aug.",
+"September": "Sept.",
+"October": "Oct.",
+"November": "Nov.",
+"December": "Dec."
+},
+"T9": {
+"Administrative Court": "Admin. Ct.",
+"Admiralty [Court, Division]": "Adm.",
+"Aldermen’s Court": "Alder. Ct.",
+"Appeals Court": "App. Ct.",
+"Appellate Court": "App. Ct.",
+"Appellate Department": "App. Dep’t",
+"Appellate Division": "App. Div.",
+"Armed Services Board of Contract": "ASBCA",
+"Appeals Bankruptcy Appellate Panel": "B.A.P.",
+"Bankruptcy [Court, Judge]": "Bankr.",
+"Board of Contract Appeals": "B.C.A.",
+"Board of Immigration Appeals": "B.I.A.",
+"Board of Patent Appeals and": "B.P.A.I.",
+"Interferences Board of Tax Appeals": "B.T.A.",
+"Borough Court": "<Name> Bor. Ct.",
+"Business Court": "Bus. Ct.",
+"Central District": "C.D.",
+"Chancery [Court, Division]": "Ch.",
+"Children’s Court": "Child. Ct.",
+"Circuit Court (old federal)": "C.C.",
+"Circuit Court (state)": "Cir. Ct.",
+"Circuit Court of Appeals (federal)": "Cir.",
+"Circuit Court of Appeals (state)": "Cir. Ct. App.",
+"City Court": "<Name> City Ct.",
+"Civil Appeals": "Civ. App.",
+"Civil Court of Record": "Civ. Ct. Rec.",
+"Civil District Court": "Civ. Dist. Ct.",
+"Claims Court": "Cl. Ct.",
+"Commerce Court": "Comm. Ct.",
+"Commission": "Comm’n",
+"Common Pleas": "C.P. <when appropriate, name county or similar subdivision>",
+"Commonwealth Court": "Commw. Ct.",
+"Conciliation Court": "Concil. Ct.",
+"County Court": "<Name> Cnty. Ct. [could also use Cty. Ct.]",
+"County Judge’s Court": "Cnty. J. Ct. [could also use Cty. J. Ct.]",
+"Court": "Ct.",
+"Court of Appeal (English)": "C.A.",
+"Court of Appeals (federal)": "Cir.",
+"Court of Appeal[s] (state)": "Ct. App.",
+"Court of Appeals for the Armed Forces": "C.A.A.F.",
+"Court of Civil Appeals": "Civ. App.",
+"Court of Claims": "Ct. Cl.",
+"Court of Common Pleas": "Ct. Com. Pl.",
+"Court of Criminal Appeals": "Crim. App.",
+"Court of Customs and Patent Appeals": "C.C.P.A.",
+"Court of Customs Appeals": "Ct. Cust. App.",
+"Court of Errors": "Ct. Err.",
+"Court of Errors and Appeals": "Ct. Err. & App.",
+"Court of Federal Claims": "Fed. Cl.",
+"Court of [General, Special] Sessions": "Ct. <Gen. or Spec.> Sess.",
+"Court of International Trade": "Ct. Int’l Trade",
+"Court of Military Appeals": "C.M.A.",
+"Court of Military Review": "C.M.R.",
+"Court of Special Appeals": "Ct. Spec. App.",
+"Court of Veterans Appeals": "Ct. Vet. App.",
+"Criminal Appeals": "Crim. App.",
+"Criminal District Court": "Crim. Dist. Ct.",
+"Customs Court": "Cust. Ct.",
+"District Court (federal)": "D.",
+"District Court (state)": "Dist. Ct.",
+"District Court of Appeal[s]": "Dist. Ct. App.",
+"Division": "Div.",
+"Domestic Relations Court": "Dom. Rel. Ct.",
+"Eastern District": "E.D.",
+"Emergency Court of Appeals": "Emer. Ct. App.",
+"Equity [Court, Division]": "Eq.",
+"Family Court": "Fam. Ct.",
+"High Court": "High Ct.",
+"Judicial District": "Jud. Dist.",
+"Judicial Division": "Jud. Div.",
+"Judicial Panel on Multidistrict Litigation J.P.M.L. Justice of the Peace’s Court": "J.P. Ct.",
+"Juvenile Court": "Juv. Ct.",
+"Land Court": "Land Ct.",
+"Law Court": "Law Ct.",
+"Law Division": "Law Div.",
+"Magistrate Division": "Magis. Div.",
+"Magistrate’s Court": "Magis. Ct.",
+"Middle District": "M.D.",
+"Municipal Court": "<Name> Mun. Ct.",
+"Northern District": "N.D.",
+"Orphans’ Court": "Orphans’ Ct.",
+"Parish Court": "<Name> Parish Ct.",
+"Patent Trial and Appeal Board": "P.T.A.B.",
+"Police Justice’s Court": "Police J. Ct.",
+"Prerogative Court": "Prerog. Ct.",
+"Probate Court": "Prob. Ct.",
+"Public Utilities Commission": "P.U.C.",
+"Real Estate Commission": "Real Est. Comm’n",
+"Recorder’s Court": "Rec’s Ct.",
+"Southern District": "S.D.",
+"Special Court Regional Rail": "Reg’l Rail Reorg. Ct.",
+"Reorganization Act Superior Court": "Super. Ct.",
+"Supreme Court (federal)": "U.S.",
+"Supreme Court (other)": "Sup. Ct.",
+"Supreme Court, Appellate Division": "App. Div.",
+"Supreme Court, Appellate Term": "App. Term",
+"Supreme Court of Errors": "Sup. Ct. Err.",
+"Supreme Judicial Court": "Sup. Jud. Ct.",
+"Surrogate’s Court": "Sur. Ct.",
+"Tax Appeal Court": "Tax App. Ct.",
+"Tax Court": "T.C.",
+"Teen Court": "Teen Ct.",
+"Temporary Emergency Court of Appeals Temp. Emer. Ct. App. Territorial, Territory": "Terr.",
+"Trademark Trial and Appeal Board": "T.T.A.B.",
+"Traffic Court": "Traffic Ct.",
+"Tribal Court": "<Name> Tribal Ct.",
+"Tribunal": "Trib.",
+"Water Court": "Water Ct.",
+"Western District": "W.D.",
+"Workmen’s Compensation Division": "Workmen’s Comp. Div.",
+"Youth Court": "Youth Ct."
+}
+};</script>
+<script>// Citation engine: parses pasted citations and rebuilds them under The Indigo Book 2.0.
+// Works in the browser (window.CiteEngine) and in Node (module.exports). Needs DATA (data.json).
+(function (root) {
+  'use strict';
+  var DATA = root.CITE_DATA || (typeof require !== 'undefined' ? require('./data.json') : null);
+  var AP = '\u2019'; // typographic apostrophe used by the Indigo Book
+  var opts = { dash: '-' }; // page-span dash: '-' (practice) or '\u2013' (formal)
+
+  // ---------- helpers ----------
+  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function clean(s) {
+    return String(s || '')
+      .replace(/[\u2018\u2032`]/g, AP).replace(/'/g, AP)
+      .replace(/[\u201C\u201D]/g, function (c) { return c; })
+      .replace(/\u00A0/g, ' ').replace(/[ \t]+/g, ' ').trim();
+  }
+  function seg(text, i) { return { t: text, i: !!i }; }
+  function segsText(segs) { return segs.map(function (s) { return s.t; }).join(''); }
+  function segsHTML(segs) {
+    return segs.map(function (s) {
+      var h = s.t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return s.i ? '<i>' + h + '</i>' : h;
+    }).join('');
+  }
+  function mergeSegs(segs) {
+    var out = [];
+    segs.forEach(function (s) {
+      if (!s.t) return;
+      var last = out[out.length - 1];
+      if (last && last.i === s.i) last.t += s.t; else out.push({ t: s.t, i: s.i });
+    });
+    return out;
+  }
+  function note(list, rule, msg) { list.push({ rule: rule, msg: msg }); }
+
+  // ---------- months & dates (T17) ----------
+  var MONTHS = DATA.MONTHS;
+  var MONTH_RE = '(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\\.?';
+  var MONTH_NAMES = Object.keys(MONTHS);
+  function monthAbbr(m) {
+    var k = m.replace(/\.$/, '').toLowerCase();
+    for (var i = 0; i < MONTH_NAMES.length; i++) {
+      var full = MONTH_NAMES[i];
+      if (full.toLowerCase().indexOf(k.slice(0, 3)) === 0) return MONTHS[full];
+    }
+    return m;
+  }
+  function normDate(d, notes) {
+    var s = clean(d);
+    var iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (iso) {
+      s = MONTH_NAMES[+iso[2] - 1] + ' ' + (+iso[3]) + ', ' + iso[1];
+    }
+    var us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (us) s = MONTH_NAMES[+us[1] - 1] + ' ' + (+us[2]) + ', ' + us[3];
+    var out = s.replace(new RegExp('\\b' + MONTH_RE + '(?=\\s|$|,)', 'g'), function (all, m) {
+      var a = monthAbbr(m);
+      if (notes && a !== all) note(notes, 'T17', 'Month abbreviation: ' + all + ' \u2192 ' + a);
+      return a;
+    });
+    out = out.replace(/(\d{1,2}),?\s*(\d{4})/, '$1, $2');
+    return out;
+  }
+
+  // ---------- page spans (R5.1.2) ----------
+  function normPin(p, notes) {
+    if (!p) return p;
+    var s = clean(p).replace(/^(at|p\.|pp\.|page|pages)\s+/i, '');
+    s = s.replace(/\s*(?:-|\u2013|\u2014|to)\s*/g, '-');
+    s = s.replace(/(\d+)-(\d+)/g, function (all, a, b) {
+      if (b.length === a.length && a.length > 2 && a.slice(0, a.length - 2) === b.slice(0, b.length - 2)) {
+        var nb = b.slice(-2);
+        if (notes) note(notes, 'R5.1.2', 'Keep only the last two digits of a page span: ' + a + '-' + b + ' \u2192 ' + a + opts.dash + nb);
+        return a + opts.dash + nb;
+      }
+      return a + opts.dash + b;
+    });
+    s = s.replace(/\s*n\.\s*(\d+)/g, ' n.$1');
+    return s;
+  }
+
+  // ---------- geography (T12) ----------
+  var STATES = DATA.STATES;
+  var STATE_NAMES = Object.keys(STATES).sort(function (a, b) { return b.length - a.length; });
+  var STATE_ABBRS = {};
+  STATE_NAMES.forEach(function (n) { STATE_ABBRS[STATES[n]] = n; });
+  var POSTAL = { AL: 'Ala.', AK: 'Alaska', AZ: 'Ariz.', AR: 'Ark.', CA: 'Cal.', CO: 'Colo.', CT: 'Conn.', DE: 'Del.', FL: 'Fla.', GA: 'Ga.', HI: 'Haw.', ID: 'Idaho', IL: 'Ill.', IN: 'Ind.', IA: 'Iowa', KS: 'Kan.', KY: 'Ky.', LA: 'La.', ME: 'Me.', MD: 'Md.', MA: 'Mass.', MI: 'Mich.', MN: 'Minn.', MS: 'Miss.', MO: 'Mo.', MT: 'Mont.', NE: 'Neb.', NV: 'Nev.', NH: 'N.H.', NJ: 'N.J.', NM: 'N.M.', NY: 'N.Y.', NC: 'N.C.', ND: 'N.D.', OH: 'Ohio', OK: 'Okla.', OR: 'Or.', PA: 'Pa.', RI: 'R.I.', SC: 'S.C.', SD: 'S.D.', TN: 'Tenn.', TX: 'Tex.', UT: 'Utah', VT: 'Vt.', VA: 'Va.', WA: 'Wash.', WV: 'W. Va.', WI: 'Wis.', WY: 'Wyo.', DC: 'D.C.', PR: 'P.R.', GU: 'Guam', VI: 'V.I.' };
+  // Common loose spellings people type for state abbreviations.
+  var STATE_ALIASES = { 'Calif.': 'Cal.', 'Calif': 'Cal.', 'Penn.': 'Pa.', 'Penn': 'Pa.', 'Mass': 'Mass.', 'Fla': 'Fla.', 'Tex': 'Tex.', 'Ill': 'Ill.', 'Wash': 'Wash.', 'Mich': 'Mich.', 'Conn': 'Conn.', 'Wis': 'Wis.', 'Minn': 'Minn.', 'Ariz': 'Ariz.', 'Colo': 'Colo.', 'W.Va.': 'W. Va.', 'WVa': 'W. Va.', 'Va': 'Va.', 'Ga': 'Ga.', 'Pa': 'Pa.', 'NY': 'N.Y.', 'N.Y': 'N.Y.', 'NJ': 'N.J.', 'N.J': 'N.J.', 'DC': 'D.C.', 'D.C': 'D.C.' };
+  function stateFrom(s) {
+    s = clean(s).replace(/^the\s+/i, '');
+    if (!s) return null;
+    for (var i = 0; i < STATE_NAMES.length; i++) if (s.toLowerCase() === STATE_NAMES[i].toLowerCase()) return STATES[STATE_NAMES[i]];
+    if (STATE_ABBRS[s]) return s;
+    if (STATE_ALIASES[s]) return STATE_ALIASES[s];
+    var noDot = s.replace(/\.$/, '');
+    if (STATE_ABBRS[noDot + '.']) return noDot + '.';
+    var compact = s.replace(/[.\s]/g, '').toUpperCase();
+    if (compact.length === 2 && POSTAL[compact]) return POSTAL[compact];
+    for (var a in STATE_ABBRS) if (a.replace(/[.\s]/g, '').toUpperCase() === compact) return a;
+    return null;
+  }
+  function closeUp(prefix, st) { // "S.D." + "N.Y." => "S.D.N.Y."; "N.D." + "Cal." => "N.D. Cal."
+    return /^([A-Z]\.)+$/.test(st) ? prefix + st : prefix + ' ' + st;
+  }
+
+  // ---------- courts (T1, T9, T12) ----------
+  var ORD = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10, eleventh: 11 };
+  function ordinal(n) { n = +n; return n === 2 ? '2d' : n === 3 ? '3d' : n === 1 ? '1st' : n + 'th'; }
+  // Returns {abbr, kind, state, ok, guess}
+  function parseCourt(raw) {
+    var s = clean(raw).replace(/[,]+$/, '');
+    var r = { abbr: s, kind: 'other', state: null, ok: false };
+    if (!s) return null;
+    var low = s.toLowerCase().replace(/^the\s+/, '');
+    // U.S. Supreme Court
+    if (/^(u\.?s\.?|united states)( supreme court)?$/.test(low) && /supreme|^u\.?s\.?$/.test(low) || /supreme court of the united states|^scotus$|^u\.?s\.? supreme court|^united states supreme court/.test(low)) {
+      return { abbr: 'U.S.', kind: 'scotus', state: null, ok: true };
+    }
+    // Federal circuits
+    var m = low.match(/^(?:(?:united states|u\.s\.)\s+)?(?:court of appeals for the\s+)?(\d+)\s*(?:st|nd|rd|th|d)?\s*cir(?:cuit|\.)?\s*(?:court of appeals)?$/) ||
+            low.match(/^(?:(?:united states|u\.s\.)\s+)?(?:court of appeals for the\s+)?(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh)\s+cir(?:cuit|\.)?(?:\s+court of appeals)?$/);
+    if (m) { var n = ORD[m[1]] || +m[1]; if (n >= 1 && n <= 11) return { abbr: ordinal(n) + ' Cir.', kind: 'circuit', ok: true }; }
+    if (/^(?:(?:united states|u\.s\.)\s+)?(?:court of appeals for the\s+)?(d\.?\s?c\.?|district of columbia)\s+cir(cuit|\.)?$/.test(low)) return { abbr: 'D.C. Cir.', kind: 'circuit', ok: true };
+    if (/^(?:(?:united states|u\.s\.)\s+)?(?:court of appeals for the\s+)?fed(eral|\.)?\s+cir(cuit|\.)?$/.test(low)) return { abbr: 'Fed. Cir.', kind: 'circuit', ok: true };
+    if (/court of federal claims|^fed\.? ?cl\.?$/.test(low)) return { abbr: 'Fed. Cl.', kind: 'fedcl', ok: true };
+    // Bankruptcy prefix
+    var bankr = '';
+    if (/^bankr(uptcy|\.)?\s+/i.test(s) || /bankruptcy court/i.test(s)) {
+      bankr = 'Bankr. ';
+      s = s.replace(/^bankr(uptcy|\.)?\s+/i, '').replace(/(united states\s+)?bankruptcy court( for the)?\s*/i, '');
+      low = s.toLowerCase();
+    }
+    // Federal districts, spelled out
+    var DIRS = { northern: 'N.D.', southern: 'S.D.', eastern: 'E.D.', western: 'W.D.', central: 'C.D.', middle: 'M.D.' };
+    m = s.match(/^(?:(?:united states|u\.s\.)\s+district court\s+(?:for the\s+)?)?(northern|southern|eastern|western|central|middle)\s+district\s+of\s+(.+)$/i);
+    if (m) { var st = stateFrom(m[2]); if (st) return { abbr: bankr + closeUp(DIRS[m[1].toLowerCase()], st), kind: 'district', state: st, ok: true }; }
+    m = s.match(/^(?:(?:united states|u\.s\.)\s+district court\s+(?:for the\s+)?)?district\s+of\s+(.+)$/i);
+    if (m) {
+      if (/^columbia$/i.test(m[1])) return { abbr: bankr + 'D.D.C.', kind: 'district', state: 'D.C.', ok: true };
+      var st2 = stateFrom(m[1]); if (st2) return { abbr: bankr + closeUp('D.', st2), kind: 'district', state: st2, ok: true };
+    }
+    // Federal districts, abbreviated or compact (S.D.N.Y., SDNY, N.D. Cal, D. Mass., NDCal)
+    m = s.match(/^([NSEWCM])\.?\s*D\.?\s*(.+)$/);
+    if (m && !/^\s*(ct|cir)/i.test(m[2])) { var st3 = stateFrom(m[2]); if (st3) return { abbr: bankr + closeUp(m[1] + '.D.', st3), kind: 'district', state: st3, ok: true }; }
+    m = s.match(/^D\.?\s*(.+)$/);
+    if (m) { var st4 = stateFrom(m[1]); if (st4) return { abbr: bankr + (st4 === 'D.C.' ? 'D.D.C.' : closeUp('D.', st4)), kind: 'district', state: st4, ok: true }; }
+    // State courts, spelled out
+    var stName = null, rest = s;
+    for (var i = 0; i < STATE_NAMES.length; i++) {
+      var nm = STATE_NAMES[i];
+      var re1 = new RegExp('^' + esc(nm) + '\\s+(.+)$', 'i'), re2 = new RegExp('^(.+?)\\s+of\\s+(?:the\\s+state\\s+of\\s+)?' + esc(nm) + '$', 'i');
+      var a = s.match(re1), b = s.match(re2);
+      if (a && !/^\s*$/.test(a[1]) && /court|ct\.|app|sup|super|div|ch/i.test(a[1])) { stName = STATES[nm]; rest = a[1]; break; }
+      if (b && /court|ct\.|app|sup|super|div|ch/i.test(b[1])) { stName = STATES[nm]; rest = b[1]; break; }
+    }
+    if (stName) return stateCourt(stName, rest);
+    // State courts, abbreviated ("Ga. Ct. App.", "N.C.", "Wash. Ct. App.")
+    var keys = Object.keys(STATE_ABBRS).concat(Object.keys(STATE_ALIASES)).sort(function (x, y) { return y.length - x.length; });
+    for (var k = 0; k < keys.length; k++) {
+      var ab = keys[k];
+      var mm = s.match(new RegExp('^' + esc(ab) + '(?=\\s|$)\\s*(.*)$'));
+      if (mm) {
+        var canon = STATE_ALIASES[ab] || ab;
+        if (!mm[1]) return { abbr: canon, kind: 'state-high', state: canon, ok: true };
+        return stateCourt(canon, mm[1]);
+      }
+    }
+    // Bare intermediate names without a state ("Ct. App.", "App. Div.") are allowed when the reporter names the state.
+    if (/^(ct\.? app\.?|app\.? div\.?|super\.? ct\.?|app\.? ct\.?|crim\.? app\.?)$/i.test(s)) return { abbr: abbreviateCourtWords(s), kind: 'state-app', state: null, ok: true, bare: true };
+    r.abbr = abbreviateCourtWords(s);
+    r.guess = true;
+    return r;
+  }
+  function abbreviateCourtWords(s) {
+    var t9 = DATA.T9, out = s;
+    var known = { 'Court of Appeals': 'Ct. App.', 'Court of Appeal': 'Ct. App.', 'Supreme Court': 'Sup. Ct.', 'Superior Court': 'Super. Ct.', 'Appellate Division': 'App. Div.', 'Appellate Court': 'App. Ct.', 'Court of Criminal Appeals': 'Crim. App.', 'Court of Chancery': 'Ch.', 'Chancery Court': 'Ch.', 'District Court of Appeal': 'Dist. Ct. App.', 'District Court': 'Dist. Ct.', 'Circuit Court': 'Cir. Ct.', 'Family Court': 'Fam. Ct.', 'Probate Court': 'Prob. Ct.', 'Tax Court': 'T.C.', 'Commonwealth Court': 'Commw. Ct.', 'Court of Common Pleas': 'Ct. Com. Pl.', 'Court of Special Appeals': 'Ct. Spec. App.' };
+    Object.keys(known).sort(function (a, b) { return b.length - a.length; }).forEach(function (k) {
+      out = out.replace(new RegExp(esc(k), 'i'), known[k]);
+    });
+    Object.keys(t9).forEach(function (k) {
+      if (/[\[<(]/.test(k)) return;
+      out = out.replace(new RegExp('\\b' + esc(k) + '\\b', 'i'), t9[k]);
+    });
+    out = out.replace(/\b(Ct|App|Sup|Super|Div|Dist|Cir|Crim|Fam|Prob|Spec|Com|Pl|Commw)(?=\s|$)/g, '$1.');
+    return out.replace(/\s+/g, ' ').trim();
+  }
+  function stateCourt(st, rest) {
+    var low = clean(rest).toLowerCase().replace(/^the\s+/, '');
+    var hi = { abbr: st, kind: 'state-high', state: st, ok: true };
+    if (/^(supreme court|sup\.? ?ct\.?|supreme judicial court)$/.test(low)) {
+      if (st === 'N.Y.') return { abbr: 'N.Y. Sup. Ct.', kind: 'state-trial', state: st, ok: true, warn: 'The New York Supreme Court is a trial court. The highest court is the Court of Appeals (N.Y.).' };
+      return hi;
+    }
+    if (/^(court of appeals?|ct\.? ?app\.?)$/.test(low)) {
+      if (st === 'N.Y.') return hi; // New York Court of Appeals is the highest court
+      if (st === 'Md.') return { abbr: 'Md.', kind: 'state-high', state: st, ok: true, warn: 'The Maryland Court of Appeals was the highest court until December 2022. Check against the decision date.' };
+      return { abbr: st + ' Ct. App.', kind: 'state-app', state: st, ok: true };
+    }
+    if (/appellate division|app\.? ?div\.?/.test(low)) return { abbr: st + ' App. Div.', kind: 'state-app', state: st, ok: true };
+    if (/^(appellate court|app\.? ?ct\.?)$/.test(low)) return { abbr: st + ' App. Ct.', kind: 'state-app', state: st, ok: true };
+    if (/^(superior court|super\.? ?ct\.?)$/.test(low)) return { abbr: st + ' Super. Ct.', kind: 'state-app', state: st, ok: true };
+    if (/district court of appeals?|dist\.? ?ct\.? ?app\.?/.test(low)) return { abbr: st + ' Dist. Ct. App.', kind: 'state-app', state: st, ok: true };
+    if (/court of criminal appeals|crim\.? ?app\.?/.test(low)) return { abbr: st + ' Crim. App.', kind: 'state-app', state: st, ok: true };
+    var ab = abbreviateCourtWords(rest);
+    return { abbr: st + ' ' + ab, kind: 'state-other', state: st, ok: true, guess: !/\./.test(rest) };
+  }
+
+  // ---------- reporters (T1, T3) ----------
+  // court: what the reporter tells the reader about the court (R12.3.1)
+  var REPORTERS = [
+    ['U.S.', 'scotus'], ['S. Ct.', 'scotus'], ['L. Ed. 2d', 'scotus'], ['L. Ed.', 'scotus'], ['U.S.L.W.', null],
+    ['F.4th', 'fedapp'], ['F.3d', 'fedapp'], ['F.2d', 'fedapp'], ['F.', 'fedapp'], ['F. App' + AP + 'x', 'fedapp'],
+    ['F. Supp. 3d', 'feddist'], ['F. Supp. 2d', 'feddist'], ['F. Supp.', 'feddist'], ['F.R.D.', 'feddist'], ['B.R.', 'bankr'], ['Fed. Cl.', 'fedcl'], ['T.C.', 'tax'],
+    ['A.3d', null], ['A.2d', null], ['A.', null], ['P.3d', null], ['P.2d', null], ['P.', null],
+    ['N.E.3d', null], ['N.E.2d', null], ['N.E.', null], ['N.W.2d', null], ['N.W.', null],
+    ['S.E.2d', null], ['S.E.', null], ['S.W.3d', null], ['S.W.2d', null], ['S.W.', null],
+    ['So. 3d', null], ['So. 2d', null], ['So.', null],
+    ['Cal. Rptr. 3d', 'app:Cal.'], ['Cal. Rptr. 2d', 'app:Cal.'], ['Cal. Rptr.', 'app:Cal.'],
+    ['N.Y.S.3d', 'state:N.Y.'], ['N.Y.S.2d', 'state:N.Y.'], ['N.Y.S.', 'state:N.Y.'],
+    ['N.Y.3d', 'high:N.Y.'], ['N.Y.2d', 'high:N.Y.'], ['A.D.3d', 'app:N.Y.'], ['A.D.2d', 'app:N.Y.'],
+    ['Cal. 5th', 'high:Cal.'], ['Cal. 4th', 'high:Cal.'], ['Cal. 3d', 'high:Cal.'], ['Cal. 2d', 'high:Cal.'],
+    ['Cal. App. 5th', 'app:Cal.'], ['Cal. App. 4th', 'app:Cal.'], ['Cal. App. 3d', 'app:Cal.'], ['Cal. App. 2d', 'app:Cal.'],
+    ['Ill. 2d', 'high:Ill.'], ['Ill. App. 3d', 'app:Ill.'], ['Ill. App. 2d', 'app:Ill.'],
+    ['Ohio St. 3d', 'high:Ohio'], ['Ohio St. 2d', 'high:Ohio'], ['Ohio App. 3d', 'app:Ohio'],
+    ['Wash. 2d', 'high:Wash.'], ['Wash. App. 2d', 'app:Wash.'], ['Wash. App.', 'app:Wash.'],
+    ['Wis. 2d', 'high:Wis.'], ['Mich. App.', 'app:Mich.'], ['Ga. App.', 'app:Ga.'], ['Pa. Super.', 'app:Pa.'], ['N.J. Super.', 'app:N.J.'], ['Mass. App. Ct.', 'app:Mass.'],
+    ['Md. App.', 'app:Md.'], ['Tex. App.', 'app:Tex.'], ['Minn. App.', 'app:Minn.']
+  ];
+  // A state's own name as a reporter ("306 Ga. 191") is its highest court's official reporter.
+  Object.keys(STATE_ABBRS).forEach(function (a) {
+    if (['D.C.', 'P.R.', 'Guam', 'V.I.', 'Am. Sam.', 'N. Mar. I.'].indexOf(a) >= 0) return;
+    if (!REPORTERS.some(function (r) { return r[0] === a; })) REPORTERS.push([a, 'high:' + a]);
+  });
+  function reporterPattern(canon) {
+    // Allow missing periods and odd spacing: "F.Supp.2d", "F Supp 2d", "S.Ct.", "L.Ed.2d"
+    var parts = canon.replace(/\u2019/g, "'").match(/[A-Za-z']+\.?|\d+(?:st|nd|rd|th|d)/g);
+    return parts.map(function (p) {
+      if (/^\d/.test(p)) return esc(p.replace(/(\d+)(nd|rd)$/, '$1d')).replace(/d$/, '(?:d|nd|rd)');
+      var w = p.replace(/\.$/, '');
+      return esc(w).replace(/'/g, "['\u2019]?") + '\\.?';
+    }).join('\\s*');
+  }
+  var REP_SORTED = REPORTERS.slice().sort(function (a, b) { return b[0].length - a[0].length; });
+  var REP_RE = new RegExp('(\\d{1,4})\\s+(' + REP_SORTED.map(function (r) { return reporterPattern(r[0]); }).join('|') + ')\\s+(\\d{1,5}|_{2,})(?![\\w])', 'g');
+  function canonReporter(txt) {
+    var k = txt.replace(/[\s.'\u2019]/g, '').toLowerCase().replace(/(\d)(nd|rd)$/, '$1d');
+    for (var i = 0; i < REP_SORTED.length; i++) {
+      if (REP_SORTED[i][0].replace(/[\s.'\u2019]/g, '').toLowerCase() === k) return REP_SORTED[i];
+    }
+    return null;
+  }
+
+  // ---------- case names (R11.3, R11.5, T11, T12) ----------
+  var T11 = DATA.T11;
+  var T11_KEYS = Object.keys(T11).sort(function (a, b) { return b.length - a.length; });
+  var MULTI = { 'Commissioner of Internal Revenue': 'Comm' + AP + 'r', 'Supreme Court': 'Sup. Ct.', 'Artificial Intelligence': 'A.I.' };
+  var GOVT_FIRST = /^(United States|State|People|Commonwealth|City of|County of|Town of|Village of|District of Columbia)\b/;
+  function abbrWord(w) {
+    var core = w.replace(/[,;:]+$/, ''), tail = w.slice(core.length);
+    var poss = '';
+    var pm = core.match(/^(.*?)(\u2019s|s\u2019)$/);
+    if (pm && (T11[pm[1]] || T11[pm[1] + 's'])) { core = pm[1]; poss = pm[2] === AP + 's' ? AP + 's' : 's' + AP; }
+    if (T11[core]) return T11[core] + poss + tail;
+    if (/ies$/.test(core) && T11[core.replace(/ies$/, 'y')]) return T11[core.replace(/ies$/, 'y')].replace(/\.$/, '') + 's.' + poss + tail;
+    if (/s$/.test(core) && T11[core.slice(0, -1)]) {
+      var a = T11[core.slice(0, -1)];
+      return (/\.$/.test(a) ? a.slice(0, -1) + 's.' : a + 's') + poss + tail;
+    }
+    return null;
+  }
+  function abbreviateParty(p, ctx, notes) {
+    var s = clean(p);
+    var before = s;
+    if (/^the\s+/i.test(s) && !/^the\s+(people|state)\b/i.test(s)) { s = s.replace(/^the\s+/i, ''); note(notes, 'R11.5.12', 'Drop a leading “The” from party names.'); }
+    if (/,?\s+et\.?\s*al\.?$/i.test(s)) { s = s.replace(/,?\s+et\.?\s*al\.?$/i, ''); note(notes, 'R11.5.5', 'Omit “et al.”'); }
+    s = s.replace(/^United States of America$/i, 'United States');
+    // State / Commonwealth / People as a party (R11.5.9)
+    var sm = s.match(/^(?:the\s+)?(state|commonwealth|people)\s+of\s+(?:the\s+state\s+of\s+)?(.+)$/i);
+    if (sm) {
+      var stAb = stateFrom(sm[2]);
+      if (stAb && ctx.courtState === stAb) { s = sm[1][0].toUpperCase() + sm[1].slice(1).toLowerCase(); note(notes, 'R11.5.9', 'In that state\'s own courts, write only “State”, “Commonwealth” or “People”.'); }
+      else if (stAb) { s = STATE_ABBRS[stAb] || sm[2]; note(notes, 'R11.5.9', 'In other courts, write only the state name.'); }
+    }
+    // A party that is only a geographic name stays spelled out (R11.3.2, R11.5.8)
+    if (stateFrom(s) && !/\./.test(s) || /^United States$/.test(s)) return s;
+    if (/^Commissioner$/.test(s)) { note(notes, 'R11.5.13', 'Commissioner \u2192 Comm' + AP + 'r'); return 'Comm' + AP + 'r'; }
+    Object.keys(MULTI).forEach(function (k) {
+      if (s.indexOf(k) >= 0) { s = s.replace(k, MULTI[k]); note(notes, k === 'Commissioner of Internal Revenue' ? 'R11.5.13' : 'T11', k + ' \u2192 ' + MULTI[k]); }
+    });
+    s = s.replace(/\bUnited States(?= [A-Z])/g, function () { note(notes, 'R11.5.8', '“United States” used as an adjective becomes “U.S.”'); return 'U.S.'; });
+    s = s.replace(/\bNew York City\b/g, 'N.Y.C.');
+    // geographic words inside a longer name (T12)
+    STATE_NAMES.forEach(function (nm) {
+      var re = new RegExp('\\b' + esc(nm) + '\\b', 'g');
+      if (re.test(s) && s !== nm) {
+        s = s.replace(re, function () { note(notes, 'T12', nm + ' \u2192 ' + STATES[nm]); return STATES[nm]; });
+      }
+    });
+    // and -> &
+    s = s.replace(/\s+and\s+/g, function () { note(notes, 'T11', 'and \u2192 &'); return ' & '; });
+    // word by word (T11); keep the first word of a one-word party
+    var words = s.split(/\s+/);
+    if (words.length > 1) {
+      words = words.map(function (w, i) {
+        if (/^Local$/.test(w) && /^\d/.test(words[i + 1] || '')) return w;
+        var a = abbrWord(w);
+        if (a && a !== w) { note(notes, 'T11', w.replace(/[,;:]+$/, '') + ' \u2192 ' + a.replace(/[,;:]+$/, '')); return a; }
+        return w;
+      });
+      s = words.join(' ');
+    }
+    // Incorporated etc. after a comma
+    s = s.replace(/\b(Inc|Corp|Co|Ltd)(?=$)/, '$1.');
+    s = s.replace(/\s+,/g, ',');
+    return s;
+  }
+  function normalizeCaseName(name, ctx, notes) {
+    var s = clean(name).replace(/[,\s]+$/, '');
+    s = s.replace(/\s+(?:vs?\.?|V\.|versus)\s+/g, function (m) { if (m.trim() !== 'v.') note(notes, 'R11.1', 'Use “v.”'); return ' v. '; });
+    s = s.replace(/^(?:in the matter of|matter of)\s+/i, function () { note(notes, 'R11.5.10', '“In the Matter of” becomes “In re”.'); return 'In re '; });
+    s = s.replace(/\s+(?:on the relation of|on behalf of)\s+/i, function () { note(notes, 'R11.5.6', '“on behalf of” becomes “ex rel.”'); return ' ex rel. '; });
+    var parts = s.split(' v. ');
+    if (parts.length === 2) {
+      return abbreviateParty(parts[0], ctx, notes) + ' v. ' + abbreviateParty(parts[1], ctx, notes);
+    }
+    var inre = s.match(/^(In re|Ex parte)\s+(.+)$/i);
+    if (inre) return inre[1].replace(/^in re$/i, 'In re').replace(/^ex parte$/i, 'Ex parte') + ' ' + abbreviateParty(inre[2], ctx, notes);
+    return abbreviateParty(s, ctx, notes);
+  }
+  function shortCaseName(name) {
+    var parts = name.split(' v. ');
+    var first = parts[0];
+    if (parts.length === 2 && (GOVT_FIRST.test(first) || stateFrom(first) || /^(In re)/.test(first))) first = parts[1];
+    if (/^In re /.test(first)) first = first.replace(/^In re /, '');
+    first = first.replace(/,?\s+(Inc|Corp|Co|Ltd|LLC|L\.L\.C|LLP|L\.P|LP|N\.A)\.?$/, '').replace(/,\s*$/, '');
+    return first;
+  }
+
+  // ---------- signals (R4) ----------
+  var SIGNALS = ['See, e.g.,', 'But see, e.g.,', 'See generally', 'See also', 'But see', 'But cf.', 'Compare', 'Contra', 'Accord', 'E.g.,', 'Cf.', 'See'];
+  function splitSignal(text) {
+    var s = clean(text);
+    for (var i = 0; i < SIGNALS.length; i++) {
+      var sig = SIGNALS[i];
+      var pat = '^' + esc(sig).replace(/,/g, ',?').replace(/\\\./g, '\\.?').replace(/ /g, '\\s*') + '(?=\\s)';
+      var m = s.match(new RegExp(pat, 'i'));
+      if (m) return { signal: sig, rest: s.slice(m[0].length).trim() };
+    }
+    return { signal: null, rest: s };
+  }
+
+  // ---------- subsequent history (R14) ----------
+  var HISTORY = ['aff' + AP + 'd in part, rev' + AP + 'd in part', 'aff' + AP + 'd', 'rev' + AP + 'd on other grounds', 'rev' + AP + 'd sub nom.', 'rev' + AP + 'd', 'cert. denied', 'cert. granted', 'cert. dismissed', 'vacated', 'overruled by', 'abrogated by', 'superseded by statute', 'as recognized in', 'modified', 'appeal dismissed', 'reh' + AP + 'g denied'];
+  function historySegs(tail, notes, depth) {
+    // tail starts after the court/year parenthetical
+    var out = [];
+    var s = tail;
+    var guard = 0;
+    while (s && guard++ < 6) {
+      var m = null, hit = null;
+      for (var i = 0; i < HISTORY.length; i++) {
+        var pat = esc(HISTORY[i]).replace(/\u2019/g, "['\u2019]").replace(/ /g, '\\s+');
+        m = s.match(new RegExp('^\\s*,\\s*(' + pat + ')(,\\s*|\\s+)', 'i'));
+        if (m) { hit = HISTORY[i]; break; }
+      }
+      if (!hit) break;
+      out.push(seg(', '), seg(hit, true), seg(/(sub nom\.| by| in)$/.test(hit) ? ' ' : ', '));
+      s = s.slice(m[0].length);
+      // parse the next case citation in the history
+      var inner = parseCaseCore(s, notes, depth + 1, hit === 'rev' + AP + 'd sub nom.' || /by|in/.test(hit));
+      if (inner && inner.consumed) {
+        out = out.concat(inner.segs);
+        s = s.slice(inner.consumed);
+      } else break;
+    }
+    if (s) out.push(seg(s.replace(/^\s+/, ' ').replace(/\.\s*$/, '')));
+    return out;
+  }
+
+  // ---------- case parsing & formatting (R11-R15) ----------
+  function parseCaseCore(text, notes, depth, allowName) {
+    var s = text;
+    REP_RE.lastIndex = 0;
+    var wl = s.match(/(\d{4})\s+(WL|U\.?S\.?\s*(?:Dist\.?|App\.?)?\s*LEXIS)\s+(\d+)/i);
+    var m = REP_RE.exec(s);
+    if (wl && (!m || wl.index < m.index)) m = null;
+    if (!m && !wl) return null;
+    var idx = m ? m.index : wl.index;
+    var namePart = s.slice(0, idx);
+    var f = { reporters: [], pins: [], name: '', docket: '', court: '', date: '', wl: null };
+    // docket number before a database cite
+    var dk = namePart.match(/,?\s*(No\.?|Nos\.?|Case No\.?|Civ\.? No\.?)\s*([^,]+),\s*$/i);
+    if (dk) { f.docket = 'No. ' + dk[2].trim().replace(/[\u2013]/g, '-'); namePart = namePart.slice(0, dk.index); }
+    f.name = namePart.replace(/[,\s]+$/, '');
+    var pos;
+    if (m) {
+      f.reporters.push({ vol: m[1], rep: canonReporter(m[2]), page: m[3], raw: m[2] });
+      pos = m.index + m[0].length;
+    } else {
+      f.wl = { year: wl[1], db: /WL/i.test(wl[2]) ? 'WL' : clean(wl[2]).replace(/\s*LEXIS/i, ' LEXIS').replace(/^U\.?S\.?/, 'U.S.').replace(/\s+/g, ' '), num: wl[3] };
+      pos = wl.index + wl[0].length;
+    }
+    // pincite and parallel reporters
+    var rest = s.slice(pos);
+    var guard = 0;
+    while (guard++ < 4) {
+      var pin = rest.match(/^\s*,\s*(at\s+)?(\*{0,2}\d+(?:\s*(?:-|\u2013|to)\s*\*{0,2}\d+)?(?:\s*n\.\s*\d+)?(?:\s*,\s*\*?\d+(?:\s*(?:-|\u2013)\s*\d+)?)*)(?=\s*(?:\(|,|\.|$|\s+[A-Z]))/);
+      if (pin) {
+        // don't treat the volume of a parallel cite as a pin
+        var look = rest.slice(pin[0].length);
+        var parallel = new RegExp('^\\s+(' + REP_SORTED.map(function (r) { return reporterPattern(r[0]); }).join('|') + ')\\s+\\d').exec(look);
+        if (parallel) {
+          var vol = pin[2];
+          rest = rest.slice(pin[0].length);
+          var pm = REP_RE.exec(vol + rest);
+          REP_RE.lastIndex = 0;
+          var pr = new RegExp('^\\s*(' + REP_SORTED.map(function (r) { return reporterPattern(r[0]); }).join('|') + ')\\s+(\\d+)').exec(rest);
+          if (pr) { f.reporters.push({ vol: vol, rep: canonReporter(pr[1]), page: pr[2] }); rest = rest.slice(pr[0].length); continue; }
+          break;
+        }
+        f.pins[Math.max(0, f.reporters.length - 1)] = pin[2];
+        rest = rest.slice(pin[0].length);
+        continue;
+      }
+      var par = new RegExp('^\\s*,\\s*(\\d{1,4})\\s+(' + REP_SORTED.map(function (r) { return reporterPattern(r[0]); }).join('|') + ')\\s+(\\d{1,5})').exec(rest);
+      if (par) { f.reporters.push({ vol: par[1], rep: canonReporter(par[2]), page: par[3] }); rest = rest.slice(par[0].length); continue; }
+      break;
+    }
+    // court & date
+    var cd = rest.match(/^\s*\(([^()]*?\b(\d{4}))\)/);
+    var consumedTo;
+    if (cd) {
+      var inside = cd[1];
+      var dm = inside.match(new RegExp('(' + MONTH_RE + '\\s*\\d{1,2},?\\s*)?(\\d{4})$'));
+      f.date = dm ? dm[0] : '';
+      f.court = inside.slice(0, inside.length - f.date.length).trim().replace(/,$/, '');
+      rest = rest.slice(cd[0].length);
+    } else {
+      // loose form: "... 116 Southern District of New York 1999"
+      var loose = rest.match(/^\s*,?\s*([A-Za-z.][A-Za-z.\s&']*?)?\s*,?\s*(\(?\s*(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*\d{1,2},?\s*)?\d{4}\s*\)?)/);
+      if (loose && depth === 0) {
+        f.court = (loose[1] || '').trim();
+        f.date = loose[2].replace(/[()]/g, '').trim();
+        rest = rest.slice(loose[0].length);
+      }
+    }
+    consumedTo = s.length - rest.length;
+    var segs = formatCase(f, notes, depth);
+    var tail = rest;
+    if (depth > 0) {
+      // in history: stop at the next ", phrase," or end
+      return { segs: segs.segs, consumed: consumedTo, f: f };
+    }
+    return { f: f, segs: segs.segs, missing: segs.missing, warn: segs.warn, tail: tail, consumed: consumedTo };
+  }
+
+  function formatCase(f, notes, depth) {
+    var missing = [], warn = [], issues = [];
+    var court = f.court ? parseCourt(f.court) : null;
+    var rep0 = f.reporters[0] && f.reporters[0].rep;
+    var implied = rep0 ? rep0[1] : null;
+    var ctx = { courtState: court && court.state ? court.state : (implied && /:/.test(implied) ? implied.split(':')[1] : null) };
+    var name = normalizeCaseName(f.name, ctx, notes);
+    if (!f.name && depth === 0) missing.push('case name');
+    var segs = name ? [seg(name, true), seg(', ')] : [];
+    if (f.docket) segs.push(seg(f.docket + ', '));
+    if (f.wl) {
+      segs.push(seg(f.wl.year + ' ' + f.wl.db + ' ' + f.wl.num));
+      if (f.pins[0]) segs.push(seg(', at ' + (/^\*/.test(f.pins[0]) ? '' : '*') + normPin(f.pins[0], notes)));
+      if (!f.docket) missing.push('docket number (No.)');
+    } else {
+      f.reporters.forEach(function (r, i) {
+        if (i) segs.push(seg(', '));
+        if (!r.rep) { segs.push(seg(r.vol + ' ' + r.raw + ' ' + r.page)); return; }
+        if (r.raw && r.raw.replace(/\s/g, '') !== r.rep[0].replace(/\s/g, '').replace(/\u2019/g, "'") && r.raw !== r.rep[0]) note(notes, 'T1', 'Reporter abbreviation: ' + r.raw.trim() + ' \u2192 ' + r.rep[0]);
+        segs.push(seg(r.vol + ' ' + r.rep[0] + ' ' + r.page));
+        if (f.pins[i]) segs.push(seg(', ' + normPin(f.pins[i], notes)));
+      });
+      if (!f.pins[0] && depth === 0) warn.push('Include a pin cite to the page you rely on (R11.1).');
+    }
+    // court in parenthetical (R12)
+    var courtStr = '';
+    if (court) {
+      if (court.warn) warn.push(court.warn);
+      if (court.guess) issues.push('Not sure of the court abbreviation: “' + f.court + '” \u2192 “' + court.abbr + '”. Check Tables T9 and T3.');
+      var omit = false;
+      if (implied === 'scotus' && (court.kind === 'scotus')) omit = true;
+      if (implied && /^high:/.test(implied) && court.kind === 'state-high' && court.state === implied.slice(5)) omit = true;
+      if (implied && /^app:/.test(implied) && court.state === implied.slice(4) && court.kind === 'state-app') omit = true;
+      if (omit) note(notes, 'R12.3.1', 'The reporter identifies the court, so omit the court from the parenthetical.');
+      else {
+        courtStr = court.bare && implied && /:/.test(implied) ? court.abbr : court.abbr;
+        if (court.abbr !== clean(f.court)) note(notes, 'R12.2', 'Court abbreviation: ' + clean(f.court) + ' \u2192 ' + court.abbr);
+      }
+      if (implied === 'fedapp' && court.kind === 'district') issues.push(rep0[0] + ' reports circuit decisions, but the court is a district court (' + court.abbr + ').');
+      if (implied === 'feddist' && court.kind === 'circuit') issues.push(rep0[0] + ' reports district court decisions, but the court is a circuit (' + court.abbr + ').');
+      if (implied === 'scotus' && court.kind !== 'scotus') issues.push(rep0[0] + ' reports Supreme Court decisions, but another court is named.');
+    } else if (implied && implied !== 'scotus' && !/^(high|app):/.test(implied)) {
+      if (!f.wl) missing.push('court');
+    } else if (f.wl) missing.push('court');
+    var date = f.date ? normDate(f.date, notes) : '';
+    if (!date) missing.push(f.wl ? 'decision date (month day, year)' : 'year');
+    if (f.wl && date && /^\d{4}$/.test(date)) warn.push('Westlaw and Lexis cites need the exact decision date (month day, year) (R12.4.1).');
+    var paren = [courtStr, date].filter(Boolean).join(' ');
+    if (paren) segs.push(seg(' (' + paren + ')'));
+    return { segs: mergeSegs(segs), missing: missing.concat(issues), warn: warn, court: court };
+  }
+
+  function parseCase(text) {
+    var notes = [];
+    var sp = splitSignal(text);
+    var core = parseCaseCore(sp.rest, notes, 0, true);
+    if (!core) return null;
+    var tailSegs = historySegs(core.tail || '', notes, 0);
+    var segs = core.segs.concat(tailSegs);
+    var key = core.f.wl ? core.f.wl.year + ' WL ' + core.f.wl.num : (core.f.reporters[0] ? core.f.reporters[0].vol + ' ' + (core.f.reporters[0].rep ? core.f.reporters[0].rep[0] : core.f.reporters[0].raw) + ' ' + core.f.reporters[0].page : '');
+    var name = segsText([core.segs[0]]);
+    return {
+      type: 'case', signal: sp.signal, segs: mergeSegs(segs), notes: notes, missing: core.missing, warn: core.warn,
+      key: 'case:' + key, pin: core.f.wl ? (core.f.pins[0] ? '*' + core.f.pins[0].replace(/^\*/, '') : '') : normPin(core.f.pins[0] || '', null), pinKind: 'page',
+      short: core.f.wl ? null : { name: shortCaseName(name), vol: core.f.reporters[0].vol, rep: core.f.reporters[0].rep ? core.f.reporters[0].rep[0] : core.f.reporters[0].raw },
+      wlShort: core.f.wl ? { name: shortCaseName(name), cite: core.f.wl.year + ' ' + core.f.wl.db + ' ' + core.f.wl.num } : null,
+      fields: core.f
+    };
+  }
+
+  // ---------- statutes (R16, R17) ----------
+  var SEC = '(?:§§?|sections?|secs?\\.?)';
+  function normSection(sec) {
+    var s = clean(sec).replace(/\s*(?:-|\u2013)\s*(?=\d)/g, function (m) { return m; });
+    return s.replace(/\s+et\s+seq\.?/i, ' et seq.');
+  }
+  function parseFedStatute(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var YP = '(\\((?=[^)]*(?:\\d{4}|West|Lexis|Supp|repealed))([^)]*)\\))?';
+    var m = s.match(new RegExp('^(?:(.+?),\\s*)?(\\d+)\\s*U\\.?\\s*S\\.?\\s*C\\.?\\s*(?:(A|S)\\.?(?![a-z]))?\\s*' + SEC + '?\\s*(.+?)\\s*' + YP + '$', 'i'));
+    var spelled = s.match(new RegExp('^(?:(.+?),\\s*)?(?:title\\s+)?(\\d+),?\\s*(?:of\\s+the\\s+)?(?:United States Code|U\\.?S\\.? Code)\\s*,?\\s*' + SEC + '\\s*(.+?)\\s*' + YP + '$', 'i')) ||
+      s.match(new RegExp('^(?:(.+?),\\s*)?(?:title\\s+)?(\\d+),?\\s*' + SEC + '\\s*(.+?)\\s+of\\s+(?:the\\s+)?(?:United States Code|U\\.?S\\.? Code)\\s*' + YP + '$', 'i')) ||
+      s.match(new RegExp('^(?:(.+?),\\s*)?' + SEC + '\\s*(.+?)\\s+of\\s+title\\s+(\\d+)(?:,|\\s+of\\s+the)?\\s*(?:United States Code|U\\.?S\\.?C\\.?)\\s*' + YP + '$', 'i'));
+    var name, title, ver = '', sec, paren;
+    if (m) { name = m[1]; title = m[2]; ver = m[3] ? m[3].replace(/\.?$/, '.').toUpperCase() : ''; sec = m[4]; paren = m[6]; }
+    else if (spelled) {
+      if (/of\s+title/i.test(s)) { name = spelled[1]; sec = spelled[2]; title = spelled[3]; paren = spelled[5]; }
+      else { name = spelled[1]; title = spelled[2]; sec = spelled[3]; paren = spelled[5]; }
+      note(notes, 'R16.1.1', 'Federal statutes take the form “<title> U.S.C. § <section>”.');
+    } else return null;
+    sec = normSection(sec).replace(/^§+\s*/, '');
+    var multi = /(,|-|\u2013|\bto\b|\band\b|et seq)/i.test(sec.replace(/^\d+[a-z]?(?:\([\w]+\))*-\d+[a-z]?(?:\([\w]+\))*$/i, function (x) { return /\(/.test(x) ? x : x; })) && /(\d)\s*(,|\u2013|\bto\b|\band\b)\s*\d|\d-\d+\s*$/.test(sec) && !/^\d+[a-z]*-\d+[a-z]*(\(|$)/i.test(sec) || /,|\band\b|\bto\b/.test(sec);
+    // "2000e-2" is one section; "301-399i" with §§ is a span. Trust the user's §§ when present.
+    if (/§§/.test(s)) multi = true;
+    else if (/^\d+[a-z]?-\d+[a-z]?$/i.test(sec) && !/§§/.test(s)) multi = false;
+    sec = sec.replace(/\s+to\s+/g, '-').replace(/\s*,\s*/g, ', ');
+    var segs = [];
+    if (sp.signal) {}
+    if (name) segs.push(seg(clean(name).replace(/§(?=\d)/g, '\u00A7 ') + ', '));
+    var sym = multi ? '\u00A7\u00A7 ' : '\u00A7 ';
+    var code = 'U.S.C.' + (ver ? ver.replace(/^(A|S)\.?$/, '$1.') : '');
+    code = ver ? 'U.S.C.' + ver.replace('.', '') + '.' : 'U.S.C.';
+    segs.push(seg(title + ' ' + code + ' ' + sym + sec));
+    if (paren) {
+      var p = normDate(paren, notes);
+      if (/^(west|lexisnexis|lexis)/i.test(p) && !ver) warn.push('Name a publisher only for U.S.C.A. (West) or U.S.C.S. (LexisNexis).');
+      segs.push(seg(' (' + p + ')'));
+    } else if (ver) {
+      warn.push('Unofficial codes (U.S.C.A./U.S.C.S.) take the publisher in the parenthetical (R16.1.5).');
+    }
+    var raw = clean(sp.rest);
+    if (/§(?=\d)/.test(raw)) note(notes, 'R16.1.1', 'Put a space after “§”.');
+    if (/\bsec(tion)?s?\.?\s/i.test(raw)) note(notes, 'R16.1.1', '“Section” becomes “§”.');
+    return { type: 'statute', signal: sp.signal, segs: mergeSegs(segs), notes: notes, warn: warn, missing: missing, key: 'usc:' + title + code, pin: sec, pinKind: 'section', short: { sec: sec, multi: multi }, full: segsText(segs) };
+  }
+  var STATE_CODE_WORDS = { 'Civil Procedure': 'Civ. Proc.', 'Business and Professions': 'Bus. & Prof.', 'Business & Professions': 'Bus. & Prof.', 'Health and Safety': 'Health & Safety', 'Welfare and Institutions': 'Welf. & Inst.', 'Civil Practice and Remedies': 'Civ. Prac. & Rem.', 'Civil': 'Civ.', 'Penal': 'Penal', 'Labor': 'Lab.', 'Government': 'Gov' + AP + 't', 'Evidence': 'Evid.', 'Family': 'Fam.', 'Insurance': 'Ins.', 'Corporations': 'Corp.', 'Commercial': 'Com.', 'Vehicle': 'Veh.', 'Probate': 'Prob.', 'Business Organizations': 'Bus. Orgs.', 'Business Corporation': 'Bus. Corp.', 'General Business': 'Gen. Bus.', 'Estates': 'Est.', 'Property': 'Prop.', 'Education': 'Educ.', 'Finance': 'Fin.', 'Tax': 'Tax', 'Criminal Procedure': 'Crim. Proc.', 'Criminal': 'Crim.' };
+  function codeWords(w) {
+    var out = w;
+    Object.keys(STATE_CODE_WORDS).sort(function (a, b) { return b.length - a.length; }).forEach(function (k) {
+      out = out.replace(new RegExp('\\b' + esc(k) + '\\b', 'i'), STATE_CODE_WORDS[k]);
+    });
+    return out;
+  }
+  function parseStateStatute(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var out = null, m;
+    if ((m = s.match(new RegExp('^California\\s+(.+?)\\s+Code\\s*,?\\s*' + SEC + '?\\s*([\\d.]+[\\w.()-]*)\\s*(\\(([^)]*)\\))?$', 'i')))) out = 'Cal. ' + codeWords(m[1]) + ' Code \u00A7 ' + m[2];
+    else if ((m = s.match(new RegExp('^California\\s+Code\\s+of\\s+Civil\\s+Procedure\\s*,?\\s*' + SEC + '?\\s*([\\d.]+[\\w.()-]*)\\s*(\\(([^)]*)\\))?$', 'i')))) { out = 'Cal. Civ. Proc. Code \u00A7 ' + m[1]; m = [m[0], '', m[1], m[2], m[3]]; }
+    else if ((m = s.match(new RegExp('^Florida\\s+Statutes\\s*,?\\s*' + SEC + '?\\s*([\\d.]+[\\w.()-]*)\\s*(\\(([^)]*)\\))?$', 'i')))) { out = 'Fla. Stat. \u00A7 ' + m[1]; m = [m[0], '', m[1], m[2], m[3]]; }
+    else if ((m = s.match(new RegExp('^New\\s+York\\s+(.+?)\\s+Law\\s*,?\\s*' + SEC + '?\\s*([\\d.\\-]+[\\w.()-]*)\\s*(\\(([^)]*)\\))?$', 'i')))) out = 'N.Y. ' + codeWords(m[1]) + ' Law \u00A7 ' + m[2];
+    else if ((m = s.match(new RegExp('^Texas\\s+(.+?)\\s+Code(?:\\s+Annotated)?\\s*,?\\s*' + SEC + '?\\s*([\\d.]+[\\w.()-]*)\\s*(\\(([^)]*)\\))?$', 'i')))) out = 'Tex. ' + codeWords(m[1]) + ' Code Ann. \u00A7 ' + m[2];
+    else if ((m = s.match(new RegExp('^Ohio\\s+Revised\\s+Code(?:\\s+Annotated)?\\s*,?\\s*' + SEC + '?\\s*([\\d.]+[\\w.()-]*)\\s*(\\(([^)]*)\\))?$', 'i')))) { out = 'Ohio Rev. Code Ann. \u00A7 ' + m[1]; m = [m[0], '', m[1], m[2], m[3]]; }
+    if (out) {
+      note(notes, 'R17.2', 'Abbreviated the state code name (see Table T3).');
+      var paren = m[4];
+      var full = out + (paren ? ' (' + normDate(paren, notes) + ')' : '');
+      if (!paren) warn.push('State statutes take the code year (and publisher if needed) in parentheses (R17.3). Check whether local rules allow omitting it.');
+      return { type: 'statute', signal: sp.signal, segs: [seg(full)], notes: notes, warn: warn, missing: missing, key: 'st:' + out.replace(/\s*§.*/, ''), pin: out.replace(/^.*§\s*/, ''), pinKind: 'section', short: { sec: out.replace(/^.*§\s*/, '') }, full: full };
+    }
+    // Already abbreviated state code: starts with a state abbreviation or O.C.G.A., contains §
+    var keys = Object.keys(STATE_ABBRS).sort(function (a, b) { return b.length - a.length; });
+    var looks = /^(O\.C\.G\.A\.|\d+\s+[A-Z][a-z]+\.\s+Cons\.\s+Stat\.)/.test(s) || keys.some(function (k) { return s.indexOf(k + ' ') === 0; });
+    if (looks && /(§|\bsec(tion)?\b|tit\.)/i.test(s) && /(Code|Stat|Law|Laws|Gen\.|Ann\.|O\.C\.G\.A)/.test(s)) {
+      var fixed = s.replace(new RegExp('\\s*' + SEC + '\\s*', 'i'), function (x) { return /§§/.test(x) ? ' \u00A7\u00A7 ' : ' \u00A7 '; }).replace(/\s+/g, ' ').replace(/\s,/g, ',');
+      fixed = fixed.replace(/\(([^)]*)\)/g, function (a, inner) { return '(' + normDate(inner, notes) + ')'; });
+      if (fixed !== s) note(notes, 'R17.2.1', 'Fixed “§” form and spacing.');
+      if (!/\(\D*\d{4}\)|\(repealed/.test(fixed)) warn.push('State statutes take the code year in parentheses (R17.3). Check whether local rules allow omitting it.');
+      var key = fixed.replace(/\s*§.*/, '');
+      return { type: 'statute', signal: sp.signal, segs: [seg(fixed)], notes: notes, warn: warn, missing: missing, key: 'st:' + key, pin: (fixed.match(/§+\s*([^\s(]+)/) || [])[1] || '', pinKind: 'section', short: { sec: (fixed.match(/§+\s*([^\s(]+)/) || [])[1] || '' }, full: fixed };
+    }
+    return null;
+  }
+
+  // ---------- rules (R18) ----------
+  var RULESETS = [
+    { abbr: 'Fed. R. Civ. P.', re: /(?:fed\.?\s*r\.?\s*civ\.?\s*p\.?|f\.?\s*r\.?\s*c\.?\s*p\.?|federal\s+rules?\s+of\s+civil\s+procedure)/i },
+    { abbr: 'Fed. R. Crim. P.', re: /(?:fed\.?\s*r\.?\s*crim\.?\s*p\.?|f\.?\s*r\.?\s*cr(?:im)?\.?\s*p\.?|federal\s+rules?\s+of\s+criminal\s+procedure)/i },
+    { abbr: 'Fed. R. App. P.', re: /(?:fed\.?\s*r\.?\s*app\.?\s*p\.?|f\.?\s*r\.?\s*a\.?\s*p\.?|federal\s+rules?\s+of\s+appellate\s+procedure)/i },
+    { abbr: 'Fed. R. Evid.', re: /(?:fed\.?\s*r\.?\s*evid\.?|f\.?\s*r\.?\s*e\.?(?=\s*(?:rule\s*)?\d)|federal\s+rules?\s+of\s+evidence)/i },
+    { abbr: 'Fed. R. Bankr. P.', re: /(?:fed\.?\s*r\.?\s*bankr\.?\s*p\.?|federal\s+rules?\s+of\s+bankruptcy\s+procedure)/i }
+  ];
+  function parseRule(text) {
+    var notes = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    for (var i = 0; i < RULESETS.length; i++) {
+      var R = RULESETS[i];
+      var a = new RegExp('^' + R.re.source + '\\s*(?:rule\\s*)?(\\d+(?:\\.\\d+)?(?:\\([\\w]+\\))*)\\s*$', 'i').exec(s);
+      var b = new RegExp('^rule\\s*(\\d+(?:\\.\\d+)?(?:\\([\\w]+\\))*)\\s*(?:of\\s+the\\s+)?' + R.re.source + '\\s*$', 'i').exec(s);
+      var num = a ? a[1] : b ? b[1] : null;
+      if (!num) continue;
+      num = num.replace(/\s+/g, '');
+      var out = R.abbr + ' ' + num;
+      if (out !== s) note(notes, 'R18.1.3', 'Rule set abbreviation: “' + R.abbr + '”');
+      return { type: 'rule', signal: sp.signal, segs: [seg(out)], notes: notes, warn: [], missing: [], key: 'rule:' + R.abbr + num, pin: '', pinKind: 'none', full: out };
+    }
+    return null;
+  }
+
+  // ---------- documents in the same case (R24, T18) ----------
+  var T18 = [['Plaintiffs' + AP, 'Pls.' + AP], ['Plaintiffs', 'Pls.'], ['Plaintiff' + AP + 's', 'Pl.' + AP + 's'], ['Plaintiff', 'Pl.'], ['Defendants' + AP, 'Defs.' + AP], ['Defendants', 'Defs.'], ['Defendant' + AP + 's', 'Def.' + AP + 's'], ['Defendant', 'Def.'],
+    ['Petitioners' + AP, 'Pet' + AP + 'rs' + AP], ['Petitioner' + AP + 's', 'Pet' + AP + 'r' + AP + 's'], ['Petitioner', 'Pet' + AP + 'r'], ['Respondent', 'Resp' + AP + 't'],
+    ['First Amended Complaint', 'First Am. Compl.'], ['Second Amended Complaint', 'Second Am. Compl.'], ['Amended Complaint', 'Am. Compl.'], ['Complaint', 'Compl.'], ['Amended', 'Am.'],
+    ['Memorandum of Law', 'Mem. of Law'], ['Memorandum', 'Mem.'], ['Motion', 'Mot.'], ['Summary Judgment', 'Summ. J.'], ['Judgment', 'J.'], ['Opposition', 'Opp' + AP + 'n'], ['Response', 'Resp.'], ['Request', 'Req.'],
+    ['Admissions', 'Admis.'], ['Admission', 'Admis.'], ['Interrogatories', 'Interrogs.'], ['Interrogatory', 'Interrog.'], ['Declaration', 'Decl.'], ['Affidavit', 'Aff.'], ['Deposition', 'Dep.'], ['Exhibit', 'Ex.'],
+    ['Transcript', 'Tr.'], ['Brief', 'Br.'], ['Supplemental', 'Supp.'], ['Support', 'Supp.'], ['Preliminary', 'Prelim.'], ['Injunction', 'Inj.'], ['Reconsideration', 'Recons.'], ['Temporary Restraining Order', 'TRO'],
+    ['Hearing', 'Hr' + AP + 'g'], ['Rehearing', 'Reh' + AP + 'g'], ['Objection', 'Obj.'], ['Opinion', 'Op.'], ['Petition', 'Pet.'], ['Application', 'Appl.'], ['Attachment', 'Attach.'], ['Appendix', 'App.'], ['Counterclaim', 'Countercl.'],
+    ['Production', 'Produc.'], ['Discovery', 'Disc.'], ['Instruction', 'Instr.'], ['Limine', 'Lim.'], ['Report and Recommendation', 'R. & R.'], ['Testimony', 'Test.'], ['Points and Authorities', 'P. & A.'], ['Certiorari', 'Cert.'], ['Argument', 'Arg.'], ['Attorney', 'Att' + AP + 'y']];
+  var DOC_START = /^(Pls?\.|Defs?\.|Pet|Resp|Compl|Am\.|First Am|Second Am|Mem|Mot|Decl|Aff|Dep|Tr\.|Trial Tr|Br\.|Answer|Order|R\.\s*(?:at\s*)?\d|J\.A\.|Joint Appendix|Record|Ex\.|Opp|Reply|Plaintiff|Defendant|Petitioner|Respondent|Complaint|Amended|Memorandum|Motion|Declaration|Affidavit|Deposition|Transcript|Brief|Exhibit|Hr)/i;
+  function parseFiling(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var bracket = '';
+    var bm = s.match(/^([(\[])(.*)([)\]])$/);
+    if (bm) { bracket = bm[1]; s = bm[2].replace(/\.$/, ''); }
+    var name = s.split(/\s+(?:¶|at\s+\d|para|page|p\.\s*\d|\d+:\d+|\d+\s*$)/i)[0];
+    var hasName = /[A-Za-z]{2,}\.?\s*\w/.test(s) || /^R\./.test(s) || /^J\.A\./.test(s);
+    var looksDep = /\b(deposition|dep\.)/i.test(s) || /\d+:\d+/.test(s);
+    var DOC_ANY = /\b(Complaint|Compl\.|Answer|Motion|Mot\.|Declaration|Decl\.|Affidavit|Aff\.|Deposition|Dep\.|Brief|Br\.|Transcript|Tr\.|Memorandum|Mem\.|Exhibit|Ex\.|Petition|Pet\.|Interrogator(?:y|ies)|Interrog\.|Stipulation|Order)(?![\w])/;
+    if (!(DOC_START.test(s) || looksDep || DOC_ANY.test(s) || /ECF|Dkt|Doc\.\s*No/i.test(s)) || /\sv\.\s/.test(s)) return null;
+    var out = s;
+    // record and joint appendix
+    out = out.replace(/^(?:the\s+)?Record\s*(?:at\s*)?(\d)/i, function (a, d) { note(notes, 'R24.1', 'Abbreviate Record as “R.”'); return 'R. at ' + d; });
+    out = out.replace(/^R\.?\s*(\d)/, 'R. at $1');
+    out = out.replace(/^(?:Joint Appendix|JA|J\.A\.?)\s*(?:at\s*)?(\d)/i, function (a, d) { note(notes, 'T18', 'Joint Appendix \u2192 J.A.'); return 'J.A. at ' + d; });
+    // "Deposition of Smith" -> "Smith Dep."
+    out = out.replace(/^(?:the\s+)?Deposition of\s+([A-Z][\w.' ]*?[A-Za-z])(?=\s+(?:at|page|p\.|\d))/i, function (a, who) { note(notes, 'R24.1', 'Depositions take the form “<Name> Dep.”'); return who + ' Dep.'; });
+    T18.forEach(function (p) {
+      var re = new RegExp('\\b' + esc(p[0]).replace(/\u2019/g, "['\u2019]") + '(?![\\w])', 'g');
+      out = out.replace(re, function (all) { note(notes, 'T18', all + ' \u2192 ' + p[1]); return p[1]; });
+    });
+    out = out.replace(/\b(in|for|to|of|on|and)\b/gi, function (w) { return w.toLowerCase(); });
+    out = out.replace(/\bin\s+Supp\./, 'in Supp.');
+    // paragraphs and pages (R24.2)
+    out = out.replace(/\b(?:paragraphs?|paras?\.?|¶¶?)\s*(\d+)(\s*(?:-|\u2013|to|through)\s*(\d+))?/gi, function (a, x, r, y) {
+      return y ? '\u00B6\u00B6 ' + x + opts.dash + y : '\u00B6 ' + x;
+    });
+    out = out.replace(/,?\s*\b(?:pages?|pp?\.)\s*(\d+)(\s*(?:-|\u2013|to|through)\s*(\d+))?/gi, function (a, x, r, y) {
+      note(notes, 'R24.2', 'Use “at”, not “p.”, for pages.');
+      return ' at ' + (y ? normPin(x + '-' + y) : x);
+    });
+    out = out.replace(/\s*(\d+):(\d+)\s*(?:-|\u2013|to)\s*(\d+):(\d+)/, function (a, p1, l1, p2, l2) { return ' ' + p1 + ':' + l1 + opts.dash + p2 + ':' + l2; });
+    // ECF numbers (R24.4)
+    out = out.replace(/,?\s*(?:ECF|Dkt\.?|Docket|Doc\.?)\s*(?:No\.?|#)?\s*(\d+)/i, function (a, n) {
+      if (!/^,\s*ECF No\. /.test(a)) note(notes, 'R24.4', 'Write electronic filing numbers as “ECF No. <number>”.');
+      return ', ECF No. ' + n;
+    });
+    // exhibit then pincite needs a comma (R24.2.3)
+    out = out.replace(/(Ex\.\s*[\w.-]+)\s+at\s+/, '$1, at ');
+    out = out.replace(/Dep\.\s+at\s+(\d+:\d+)/, 'Dep. $1');
+    out = normDate(out, notes);
+    out = out.replace(/\s+/g, ' ').replace(/\s,/g, ',').trim();
+    if (!/(¶|\bat\s+\*?\d|\d+:\d+|\bNo\.\s*\d|\s\d+(?:[-\u2013]\d+)?(?:,|$))/.test(out)) missing.push('pin cite (¶ or page)');
+    if (bracket) out = bracket + out + (bracket === '(' ? ')' : ']');
+    var key = 'doc:' + out.replace(/\s*(¶|\bat\b|\d+:\d+|,\s*ECF).*$/, '').replace(/[()\[\]]/g, '');
+    return { type: 'filing', signal: sp.signal, segs: [seg(out)], notes: notes, warn: warn, missing: missing, key: key, pin: '', pinKind: 'none', bracket: !!bracket, full: out, noId: /^R\. /.test(out) };
+  }
+
+  // ---------- internet sources (R30.4.2, R32-R34) ----------
+  var SITES = {
+    'nytimes.com': 'N.Y. Times', 'wsj.com': 'Wall St. J.', 'washingtonpost.com': 'Wash. Post', 'latimes.com': 'L.A. Times', 'usatoday.com': 'USA Today', 'reuters.com': 'Reuters', 'bloomberg.com': 'Bloomberg', 'bloomberglaw.com': 'Bloomberg L.', 'apnews.com': 'AP News', 'cnn.com': 'CNN', 'nbcnews.com': 'NBC News', 'cbsnews.com': 'CBS News', 'abcnews.go.com': 'ABC News', 'foxnews.com': 'Fox News', 'npr.org': 'NPR', 'bbc.com': 'BBC', 'bbc.co.uk': 'BBC', 'theguardian.com': 'Guardian', 'ft.com': 'Fin. Times', 'economist.com': 'Economist', 'politico.com': 'Politico', 'axios.com': 'Axios', 'forbes.com': 'Forbes', 'fortune.com': 'Fortune', 'cnbc.com': 'CNBC', 'theatlantic.com': 'Atlantic', 'newyorker.com': 'New Yorker', 'time.com': 'Time', 'wired.com': 'Wired', 'theverge.com': 'Verge', 'techcrunch.com': 'TechCrunch', 'law360.com': 'Law360', 'abajournal.com': 'ABA J.', 'law.com': 'Law.com', 'scotusblog.com': 'SCOTUSblog', 'chicagotribune.com': 'Chi. Trib.', 'bostonglobe.com': 'Bos. Globe', 'sfchronicle.com': 'S.F. Chron.', 'nypost.com': 'N.Y. Post', 'businessinsider.com': 'Bus. Insider', 'thehill.com': 'Hill', 'vox.com': 'Vox', 'slate.com': 'Slate', 'propublica.org': 'ProPublica'
+  };
+  var SITE_NAMES = { 'New York Times': 'N.Y. Times', 'The New York Times': 'N.Y. Times', 'NY Times': 'N.Y. Times', 'Wall Street Journal': 'Wall St. J.', 'The Wall Street Journal': 'Wall St. J.', 'Washington Post': 'Wash. Post', 'The Washington Post': 'Wash. Post', 'Los Angeles Times': 'L.A. Times', 'Financial Times': 'Fin. Times', 'Chicago Tribune': 'Chi. Trib.', 'Boston Globe': 'Bos. Globe', 'San Francisco Chronicle': 'S.F. Chron.', 'New York Post': 'N.Y. Post', 'Business Insider': 'Bus. Insider', 'The Guardian': 'Guardian', 'The Atlantic': 'Atlantic', 'The Economist': 'Economist', 'The Verge': 'Verge', 'The Hill': 'Hill', 'Associated Press': 'AP', 'ABA Journal': 'ABA J.' };
+  function siteFromUrl(url) {
+    try {
+      var host = url.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].replace(/^www\./, '').toLowerCase();
+      for (var k in SITES) if (host === k || host.slice(-(k.length + 1)) === '.' + k) return SITES[k];
+      return null;
+    } catch (e) { return null; }
+  }
+  function dateFromUrl(url) {
+    var m = url.match(/\/(20\d{2}|19\d{2})[\/-](\d{1,2})[\/-](\d{1,2})(?=[\/-])/);
+    if (!m) return null;
+    var mo = +m[2], d = +m[3];
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    return MONTHS[MONTH_NAMES[mo - 1]] + ' ' + d + ', ' + m[1];
+  }
+  function titleFromUrl(url) {
+    var path = url.replace(/^https?:\/\/[^\/]+/i, '').split(/[?#]/)[0].replace(/\/$/, '');
+    var last = path.split('/').pop() || '';
+    last = last.replace(/\.(html?|shtml|php|aspx?)$/i, '').replace(/^\d+[-_]?/, '');
+    if (!/[a-z]-[a-z]/i.test(last)) return null;
+    var small = /^(a|an|and|as|at|but|by|for|in|nor|of|on|or|the|to|up|v|vs)$/;
+    var words = last.split(/[-_]+/).filter(Boolean);
+    return words.map(function (w, i) { return i && small.test(w) ? w : w.charAt(0).toUpperCase() + w.slice(1); }).join(' ');
+  }
+  function abbrSite(site, notes) {
+    var s = clean(site);
+    if (SITE_NAMES[s]) { if (SITE_NAMES[s] !== s) note(notes, 'R30.4', 'Publication abbreviation: ' + s + ' \u2192 ' + SITE_NAMES[s]); return SITE_NAMES[s]; }
+    var words = s.split(/\s+/);
+    if (words.length > 1) {
+      var changed = false;
+      words = words.map(function (w) { var a = abbrWord(w); if (a && a !== w) { changed = true; return a; } return w; });
+      if (changed) note(notes, 'R33.3.2', 'Abbreviated common words in the site name per Table T11.');
+      s = words.join(' ').replace(/\s+and\s+/g, ' & ');
+    }
+    return s;
+  }
+  function today() {
+    var d = new Date();
+    return MONTHS[MONTH_NAMES[d.getMonth()]] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+  function formatWeb(f) {
+    var notes = [], warn = [], missing = [];
+    var segs = [];
+    if (f.author) segs.push(seg(clean(f.author) + ', '));
+    if (f.title) { segs.push(seg(clean(f.title), true)); segs.push(seg(', ')); } else missing.push('title');
+    var site = f.site ? abbrSite(f.site, notes) : '';
+    if (site) segs.push(seg(site));
+    else missing.push('site or publication name');
+    if (f.pin) segs.push(seg(', at ' + f.pin));
+    var date = f.date ? normDate(f.date, notes) : '';
+    if (date) segs.push(seg(' (' + date + (f.time ? ', ' + f.time.replace(/\s*([ap])\.?m\.?/i, function (a, x) { return ' ' + x.toUpperCase() + 'M'; }).trim() : '') + ')'));
+    if (f.url) segs.push(seg(', ' + f.url.trim()));
+    else missing.push('URL');
+    if (!date) {
+      segs.push(seg(' (last visited ' + (f.visited ? normDate(f.visited, notes) : today()) + ')'));
+      if (!f.visited) warn.push('No publication date, so today was added as the “last visited” date (R33.5.2). Change it to the date you actually checked.');
+    }
+    if (f.guessed && f.guessed.length) warn.push('Guessed from the URL: ' + f.guessed.join(', ') + '. Check them against the actual page.');
+    if (!f.author) warn.push('Put the author first if there is one (R33.1).');
+    var shortName = f.author ? clean(f.author).split(/\s+/).pop() : (f.title || '');
+    return { type: 'web', segs: mergeSegs(segs), notes: notes, warn: warn, missing: missing, key: 'web:' + (f.url || f.title), pin: f.pin || '', pinKind: 'page', short: { name: shortName, italic: !f.author }, fields: f };
+  }
+  function parseWeb(text) {
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var bareUrl = s.match(/^(https?:\/\/\S+)$/i) || s.match(/^((?:www\.)\S+\.\S+)$/i);
+    if (bareUrl) {
+      var url = /^http/i.test(bareUrl[1]) ? bareUrl[1] : 'https://' + bareUrl[1];
+      var guessed = [];
+      var f = { url: url, site: siteFromUrl(url), date: dateFromUrl(url), title: titleFromUrl(url), author: '' };
+      if (f.site) guessed.push('site name'); if (f.date) guessed.push('date'); if (f.title) guessed.push('title');
+      f.guessed = guessed;
+      var r = formatWeb(f); r.signal = sp.signal; r.fromUrl = true; return r;
+    }
+    var m = s.match(/^(.*),\s+([^,()]+?)(?:,\s+at\s+(\S+))?\s+\(([^()]*\d{4}[^()]*)\),\s+(https?:\/\/\S+?)$/i);
+    var lv = s.match(/^(.*?),\s+(https?:\/\/\S+?)\s+\(last visited ([^)]+)\)$/i);
+    var f2 = null;
+    if (m) {
+      var pre = m[1].split(/,\s+/);
+      var author = '';
+      if (pre.length > 1 && /^([A-Z][\w.'\u2019-]*\s){0,3}[A-Z][\w.'\u2019-]+$/.test(pre[0]) && pre[0].split(' ').length <= 4) author = pre.shift();
+      var dt = m[4], time = '';
+      var tm = dt.match(/,\s*(\d{1,2}:\d{2}\s*[AP]\.?M\.?)$/i);
+      if (tm) { time = tm[1]; dt = dt.slice(0, tm.index); }
+      f2 = { author: author, title: pre.join(', '), site: m[2], pin: m[3] || '', date: dt, time: time, url: m[5] };
+    } else if (lv) {
+      var pre2 = lv[1].split(/,\s+/);
+      var site2 = pre2.length > 1 ? pre2.pop() : '';
+      f2 = { author: '', title: pre2.join(', '), site: site2, url: lv[2], visited: lv[3] };
+      if (!site2) { f2.site = f2.title; f2.title = ''; }
+    }
+    if (!f2) return null;
+    var r2 = formatWeb(f2);
+    if (!f2.title && lv) { r2.missing = r2.missing.filter(function (x) { return x !== 'title'; }); r2.segs = mergeSegs([seg(f2.site + ', ' + f2.url + ' (last visited ' + normDate(f2.visited) + ')')]); }
+    r2.signal = sp.signal;
+    return r2;
+  }
+
+  // ======================================================================
+  // Stage 2-3 source types: constitutions (R23), regulations (R19), tax (R20),
+  // legislative materials (R21), session laws (R16.1.7), restatements and
+  // uniform acts (R18.2-18.4), books (R28-29), periodicals (R30-31),
+  // documents from other cases (R25).
+  // ======================================================================
+  function out(type, sp, segs, notes, warn, missing, key, extra) {
+    var r = { type: type, signal: sp.signal, segs: mergeSegs(segs), notes: notes, warn: warn, missing: missing, key: key, pin: '', pinKind: 'none' };
+    for (var k in extra || {}) r[k] = extra[k];
+    r.full = segsText(r.segs);
+    return r;
+  }
+  var SUB = '\u00A7';
+  function roman(n) {
+    n = +n; if (!n || n > 3999) return String(n);
+    var v = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1], s = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'], r = '';
+    v.forEach(function (x, i) { while (n >= x) { r += s[i]; n -= x; } });
+    return r;
+  }
+  var ORDWORDS = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5, sixth: 6, seventh: 7, eighth: 8, ninth: 9, tenth: 10, eleventh: 11, twelfth: 12, thirteenth: 13, fourteenth: 14, fifteenth: 15, sixteenth: 16, seventeenth: 17, eighteenth: 18, nineteenth: 19, twentieth: 20, 'twenty-first': 21, 'twenty-second': 22, 'twenty-third': 23, 'twenty-fourth': 24, 'twenty-fifth': 25, 'twenty-sixth': 26, 'twenty-seventh': 27 };
+  function toRoman(x) {
+    x = String(x).trim().replace(/\.$/, '');
+    if (/^[IVXLCDM]+$/i.test(x)) return x.toUpperCase();
+    var m = x.match(/^(\d+)(?:st|nd|rd|th)?$/i); if (m) return roman(m[1]);
+    if (ORDWORDS[x.toLowerCase()]) return roman(ORDWORDS[x.toLowerCase()]);
+    return null;
+  }
+  function secPart(s) { // ", § 1" / "section 1" / "sec. 1, cl. 2"
+    if (!s) return '';
+    var t = clean(s).replace(/^,?\s*/, '');
+    t = t.replace(/(?:\bsections?|\bsecs?\.?|§§?)\s*/gi, SUB + ' ').replace(/\bclauses?\s*/gi, 'cl. ').replace(/\bcl\.\s*/g, 'cl. ');
+    return ', ' + t.replace(/\s*,\s*/g, ', ').trim();
+  }
+
+  // ---------- constitutions (R23, T13) ----------
+  function parseConst(text) {
+    var notes = [], warn = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var juris = null, rest = null, m;
+    if ((m = s.match(/^(U\.?\s?S\.?|United States|US|Federal)\s+Const(?:itution|\.)?\s*,?\s*(.*)$/i))) { juris = 'U.S.'; rest = m[2]; }
+    else if ((m = s.match(/^(.*?)\s+(?:of|to)\s+the\s+(?:(U\.?\s?S\.?|United States|US|Federal)\s+)?Constitution(?:\s+of\s+(?:the\s+(?:State|Commonwealth)\s+of\s+)?(.+?))?\s*(,\s*(?:sections?|secs?\.?|§|clauses?|cl\.).*?)?\s*(\(.*\))?$/i))) {
+      rest = m[1] + (m[4] || '') + (m[5] ? ' ' + m[5] : '');
+      if (m[3]) { juris = stateFrom(m[3]); if (!juris) return null; } else juris = 'U.S.';
+    } else if ((m = s.match(/^(.+?)\s+Const(?:itution|\.)\s*,?\s*(.*)$/i)) && stateFrom(m[1])) { juris = stateFrom(m[1]); rest = m[2]; }
+    else if ((m = s.match(/^(?:the\s+)?([\w-]+)\s+Amendment\b\s*(.*)$/i)) && toRoman(m[1]) && !/\bv\.\s/.test(s)) { juris = 'U.S.'; rest = m[1] + ' Amendment ' + m[2]; warn.push('Assumed the U.S. Constitution. Name the state if it is a state constitution.'); }
+    else return null;
+    rest = clean(rest || '').replace(/^,\s*/, '');
+    var paren = ''; var pm = rest.match(/\s*(\([^)]*\))$/); if (pm) { paren = ' ' + pm[1]; rest = rest.slice(0, pm.index); }
+    var body = '';
+    if ((m = rest.match(/^(?:the\s+)?([\w-]+)\s+Amendment\b(.*)$/i)) && toRoman(m[1])) body = 'amend. ' + toRoman(m[1]) + secPart(m[2]);
+    else if ((m = rest.match(/^(?:amend(?:ment|\.)?)\s*([\w]+)\b(.*)$/i)) && toRoman(m[1])) body = 'amend. ' + toRoman(m[1]) + secPart(m[2]);
+    else if ((m = rest.match(/^(?:art(?:icle|\.)?)\s*([\w]+)\b(.*)$/i)) && toRoman(m[1])) body = 'art. ' + toRoman(m[1]) + secPart(m[2]);
+    else if (/^(?:the\s+)?(?:preamble|pmbl\.?)$/i.test(rest)) body = 'pmbl.';
+    else if (!rest) { warn.push('Name the article or amendment you rely on (R23.1).'); }
+    else return null;
+    var txt = juris + ' Const.' + (body ? ' ' + body : '') + paren;
+    if (txt !== s) note(notes, 'R23.1', 'Constitution form: “U.S. Const. art. I, § 8” with Roman numerals and Table T13 abbreviations.');
+    if (/\(\s*\d{4}\s*\)/.test(paren)) warn.push('Do not give a year for a current constitutional provision (R23.1).');
+    return out('constitution', sp, [seg(txt)], notes, warn, [], 'const:' + txt.replace(/\s*\(.*$/, ''), { noShort: true });
+  }
+
+  // ---------- regulations: C.F.R., Fed. Reg., Treas. Reg. (R19, R20.2) ----------
+  function parseReg(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var m, name = '';
+    var CFR = '(?:C\\.?\\s?F\\.?\\s?R\\.?|Code of Federal Regulations)';
+    m = s.match(new RegExp('^(?:(.+?),\\s*)?(?:title\\s+)?(\\d+)\\s*,?\\s*(?:of\\s+the\\s+)?' + CFR + '\\s*,?\\s*(?:(' + SEC + ')|(parts?|pts?\\.?))?\\s*([\\w.()\\-]+(?:\\s*(?:-|\\u2013|to|through)\\s*[\\w.()\\-]+)?)\\s*(?:\\((\\d{4})\\))?$', 'i')) ||
+        s.match(new RegExp('^(?:(.+?),\\s*)?(' + SEC + '|parts?|pts?\\.?)\\s*([\\w.()\\-]+)\\s+of\\s+title\\s+(\\d+)\\s*(?:of\\s+the\\s+)?' + CFR + '\\s*(?:\\((\\d{4})\\))?$', 'i'));
+    if (m) {
+      var title, isPart, sec, year;
+      if (m.length === 7 && /title/i.test(s) && /of\s+title/i.test(s)) { name = m[1]; isPart = /^p/i.test(m[2]); sec = m[3]; title = m[4]; year = m[5]; }
+      else { name = m[1]; title = m[2]; isPart = !!m[4]; sec = m[5]; year = m[6]; }
+      if (!title || !sec) return null;
+      sec = sec.replace(/\s*(?:to|through)\s*/g, '-');
+      if (title === '26' && /^\d+\.\d/.test(sec) && !isPart) {
+        note(notes, 'R20.2', 'Cite Treasury Regulations (26 C.F.R.) as “Treas. Reg. §”.');
+        return treas(sp, sec, year, notes, warn, false);
+      }
+      var multi = /§§/.test(s) || /[-\u2013]/.test(sec) && /\.\d+[-\u2013]\d/.test(sec) === false && /^\d+\.\d+\s*[-\u2013]/.test(sec);
+      var body = title + ' C.F.R. ' + (isPart ? (/parts/i.test(s) ? 'pts. ' : 'pt. ') : (multi ? SUB + SUB + ' ' : SUB + ' ')) + sec;
+      if (!/C\.F\.R\. /.test(s) || /§(?=\d)/.test(s) || /\bsection/i.test(s)) note(notes, 'R19.1.1', 'Regulations take the form “<title> C.F.R. § <section> (<year>)”.');
+      var segs = [];
+      if (name) segs.push(seg(clean(name) + ', '));
+      segs.push(seg(body + (year ? ' (' + year + ')' : '')));
+      if (!year) warn.push('Add the year of the C.F.R. edition you used (R19.1.1).');
+      return out('statute', sp, segs, notes, warn, missing, 'cfr:' + title, { sub: 'reg', pin: sec, pinKind: 'section', short: { sec: sec } });
+    }
+    if ((m = s.match(/^(?:Temp(?:orary)?\.?\s+)?(?:Treas(?:ury)?\.?\s*Reg(?:ulations?|s?\.)?)\s*(?:§§?|sections?|secs?\.?)?\s*([\w.()\-]+)\s*(?:\((\d{4})\))?$/i))) {
+      return treas(sp, m[1], m[2], notes, warn, /^temp/i.test(s));
+    }
+    // Federal Register (R19.4)
+    var FR = '(?:Fed\\.?\\s*Reg\\.?|F\\.?\\s?R\\.?|Federal Register)';
+    if ((m = s.match(new RegExp('^(?:(.+?),\\s*)?(\\d+)\\s+' + FR + '\\s+([\\d,]+)(?:,\\s*([\\d,\\-\\u2013]+))?\\s*(\\(.*)?$', 'i')))) {
+      name = m[1]; var vol = m[2], page = m[3].replace(/,/g, ''), pin = m[4], tail = m[5] || '';
+      var fmtPage = page.length >= 5 ? page.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : page;
+      var parens = tail.match(/\([^)]*\)/g) || [];
+      var dateP = '', other = [];
+      parens.forEach(function (p) {
+        var inner = p.slice(1, -1).trim();
+        if (/^(proposed\s+)?(on\s+)?[A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4}$|^\d{1,2}\/\d{1,2}\/\d{4}$|^\d{4}-\d{2}-\d{2}$/i.test(inner)) {
+          var prop = /^proposed/i.test(inner);
+          dateP = ' (' + (prop ? 'proposed ' : '') + normDate(inner.replace(/^proposed\s+(on\s+)?/i, ''), notes) + ')';
+        } else other.push(' (' + inner.replace(/^to be codified at\s*/i, 'to be codified at ') + ')');
+      });
+      var urlm = tail.match(/,\s*(https?:\/\/\S+)$/);
+      if (/Federal Register|F\.?R\.?\s/i.test(s) && !/Fed\. Reg\./.test(s)) note(notes, 'R19.4', 'Abbreviate Federal Register as “Fed. Reg.”');
+      if (fmtPage !== m[3]) note(notes, 'R19.4', 'Federal Register pages of five digits or more take a comma: ' + fmtPage + '.');
+      if (!dateP) missing.push('date (for a proposed rule, “proposed <date>”)');
+      if (!name) warn.push('Put the rule’s title first (R19.4).');
+      var segs2 = [];
+      if (name) segs2.push(seg(clean(name) + ', '));
+      segs2.push(seg(vol + ' Fed. Reg. ' + fmtPage + (pin ? ', ' + pin.replace(/,(?=\d{3})/g, ',') : '') + dateP + other.join('') + (urlm ? ', ' + urlm[1] : '')));
+      return out('reg', sp, segs2, notes, warn, missing, 'fr:' + vol + ':' + page, { pin: pin || '', pinKind: 'page', short: { cite: vol + ' Fed. Reg.' } });
+    }
+    return null;
+  }
+  function treas(sp, sec, year, notes, warn, temp) {
+    var txt = (temp ? 'Temp. ' : '') + 'Treas. Reg. ' + SUB + ' ' + sec + (year ? ' (' + year + ')' : '');
+    if (!year) warn.push('Add the year of the regulation (R20.2).');
+    return out('statute', sp, [seg(txt)], notes, warn, [], 'treas:' + (temp ? 't' : ''), { sub: 'tax', pin: sec, pinKind: 'section', short: { sec: sec } });
+  }
+
+  // ---------- tax materials (R20) ----------
+  function parseTax(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var m;
+    if ((m = s.match(/^(?:I\.?\s?R\.?\s?C\.?|Internal Revenue Code(?:\s+of\s+1986)?|IRC)\s*,?\s*(?:§§?|sections?|secs?\.?)?\s*([\w()\-]+(?:\s*(?:-|\u2013|,|and)\s*[\w()]+)*)\s*(\(.*\))?$/i))) {
+      var multi = /§§|,|and|[-\u2013]\d/.test(m[1]) || /§§/.test(s);
+      var txt = 'I.R.C. ' + (multi ? SUB + SUB : SUB) + ' ' + m[1].replace(/\s*and\s*/g, ', ') + (m[2] ? ' ' + m[2] : '');
+      if (txt !== s) note(notes, 'R20.1.1', 'The Internal Revenue Code is cited as “I.R.C. § <section>”.');
+      return out('statute', sp, [seg(txt)], notes, warn, missing, 'irc:', { sub: 'tax', pin: m[1], pinKind: 'section', short: { sec: m[1] } });
+    }
+    var KINDS = [['Rev. Rul.', /^(?:Rev(?:enue)?\.?\s*Rul(?:ing|\.)?)\s*/i], ['Rev. Proc.', /^(?:Rev(?:enue)?\.?\s*Proc(?:edure|\.)?)\s*/i], ['T.D.', /^(?:T\.?\s?D\.?|Treasury Decision)\s*/i]];
+    for (var i = 0; i < KINDS.length; i++) {
+      var km = s.match(KINDS[i][1]); if (!km) continue;
+      var r = s.slice(km[0].length);
+      var mm = r.match(/^(?:No\.\s*)?([\d\-]+)\s*,?\s*(?:(\d{4}-\d+)\s+(C\.?\s?B\.?|Cumulative Bulletin|I\.?\s?R\.?\s?B\.?|Internal Revenue Bulletin)\s+(\d+)(?:,\s*(\d+))?|(\d+)\s+(Treas\.?\s*Dec(?:ember|\.)?\s*Int\.?\s*Rev\.?)\s+(\d+)\s*(\(\d{4}\))?)?$/i);
+      if (!mm) return null;
+      var segs = [seg(KINDS[i][0] + ' ' + mm[1])];
+      if (mm[2]) {
+        var bul = /^c/i.test(mm[3]) ? 'C.B.' : 'I.R.B.';
+        segs.push(seg(', ' + mm[2] + ' ' + bul + ' ' + mm[4] + (mm[5] ? ', ' + mm[5] : '')));
+      } else if (mm[6]) segs.push(seg(', ' + mm[6] + ' Treas. Dec. Int. Rev. ' + mm[8] + (mm[9] ? ' ' + mm[9] : '')));
+      else missing.push('source (C.B. or I.R.B. volume and page)');
+      if (segsText(segs) !== s) note(notes, 'R20.3', 'Rulings and procedures: “Rev. Rul. 81-225, 1981-2 C.B. 12” (prefer C.B., then I.R.B.).');
+      return out('tax', sp, segs, notes, warn, missing, 'tax:' + KINDS[i][0] + mm[1]);
+    }
+    if ((m = s.match(/^(?:I\.?R\.?S\.?\s*)?(?:P\.?\s?L\.?\s?R\.?|Priv(?:ate)?\.?\s*Ltr\.?\s*Rul\.?|Private Letter Ruling)\s*(?:No\.\s*)?(\d[\d\-]+)\s*(?:\(([^)]*)\))?$/i))) {
+      var d = m[2] ? normDate(m[2], notes) : '';
+      if (!d) missing.push('exact date of the ruling');
+      note(notes, 'R20.4', 'Private letter rulings: “I.R.S. P.L.R. <number> (<exact date>)”.');
+      return out('tax', sp, [seg('I.R.S. P.L.R. ' + m[1] + (d ? ' (' + d + ')' : ''))], notes, warn, missing, 'plr:' + m[1]);
+    }
+    return null;
+  }
+
+  // ---------- session laws (R16.1.7) ----------
+  function parsePubL(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var m = s.match(/^(?:(.+?),\s*)?(?:Pub(?:lic)?\.?\s*L(?:aw|\.)?)\s*(?:No\.?\s*)?(\d{1,3})\s*-\s*(\d{1,4})\s*,?\s*(?:((?:§§?|sections?|secs?\.?)\s*[\w()]+)\s*,?\s*)?(?:(\d+)\s+Stat(?:utes at Large|\.)?\s+(\d+)(?:,\s*([\d\-\u2013]+))?)?\s*(?:\((\d{4})\))?$/i);
+    if (!m) return null;
+    var segs = [];
+    if (m[1]) segs.push(seg(clean(m[1]) + ', '));
+    var txt = 'Pub. L. No. ' + m[2] + '-' + m[3];
+    if (m[4]) txt += ', ' + m[4].replace(/^(?:sections?|secs?\.?|§§?)\s*/i, SUB + ' ');
+    if (m[5]) txt += ', ' + m[5] + ' Stat. ' + m[6] + (m[7] ? ', ' + normPin(m[7], notes) : '');
+    else missing.push('Statutes at Large volume and page (“124 Stat. 119”)');
+    if (m[8]) txt += ' (' + m[8] + ')';
+    else if (!m[1] || !/\d{4}/.test(m[1])) warn.push('Add the year in parentheses unless the act’s name already contains it (R16.1.7).');
+    segs.push(seg(txt));
+    if (segsText(segs) !== s) note(notes, 'R16.1.7', 'Session laws: “<Name>, Pub. L. No. 111-148, § 1101, 124 Stat. 119, 141 (2010)”.');
+    return out('statute', sp, segs, notes, warn, missing, 'publ:' + m[2] + '-' + m[3], { sub: 'session', pin: m[4] ? m[4].replace(/^\D+/, '') : '', pinKind: 'section', short: { sec: '' } });
+  }
+
+  // ---------- legislative materials (R21, T5) ----------
+  var BILLS = [['H.R.J. Res.', /^(?:H\.?\s?R\.?\s?J\.?\s?Res\.?|House Joint Resolution)\s*/i], ['H.R. Con. Res.', /^(?:H\.?\s?R\.?\s?Con\.?\s?Res\.?|House Concurrent Resolution)\s*/i], ['H.R. Res.', /^(?:H\.?\s?R\.?\s?Res\.?|H\.?\s?Res\.?|House Resolution)\s*/i],
+    ['S.J. Res.', /^(?:S\.?\s?J\.?\s?Res\.?|Senate Joint Resolution)\s*/i], ['S. Con. Res.', /^(?:S\.?\s?Con\.?\s?Res\.?|Senate Concurrent Resolution)\s*/i], ['S. Exec. Res.', /^(?:S\.?\s?Exec\.?\s?Res\.?|Senate Executive Resolution)\s*/i], ['S. Res.', /^(?:S\.?\s?Res\.?|Senate Resolution)\s*/i],
+    ['H.R.', /^(?:H\.?\s?R\.?|House Bill|House of Representatives Bill)\s*(?=\d)/i], ['S.', /^(?:S\.?|Senate Bill)\s*(?=\d)/i]];
+  var T5 = { Committee: 'Comm.', Subcommittee: 'Subcomm.', Senate: 'S.', House: 'H.', 'House of Representatives': 'H.R.', Congress: 'Cong.', Congressional: 'Cong.', Session: 'Sess.', Legislature: 'Leg.', Regular: 'Reg.', Special: 'Spec.', Assembly: 'Assemb.', Report: 'Rep.', Document: 'Doc.', Resolution: 'Res.', Conference: 'Conf.' };
+  function congressOrd(x) { var n = +String(x).replace(/\D/g, ''); return n ? ordinal(n) + ' Cong.' : null; }
+  function parseLegis(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var m;
+    // Reports: S. Rep. No. 106-261, at 441 (2000); "Senate Report 106-261"
+    if ((m = s.match(/^(S\.?|Senate|H\.?\s?R\.?|House(?:\s+of\s+Representatives)?)\s*(?:Rep(?:ort|\.)?)\s*(?:No\.?\s*)?(\d{2,3})\s*-\s*(\d+)\s*(?:,?\s*(?:at|pages?|pp?\.)\s*([\w\-\u2013]+))?\s*(?:\((\d{4})\))?\s*(\((?:Conf\.?\s*Rep\.?|Conference Report)\))?$/i))) {
+      var house = /^s/i.test(m[1]) ? 'S.' : 'H.R.';
+      var txt = house + ' Rep. No. ' + m[2] + '-' + m[3] + (m[4] ? ', at ' + normPin(m[4], notes) : '') + (m[5] ? ' (' + m[5] + ')' : '') + (m[6] ? ' (Conf. Rep.)' : '');
+      if (!m[5]) missing.push('year');
+      if (txt !== s) note(notes, 'R21.5.1', 'Congressional reports: “S. Rep. No. 106-261, at 441 (2000)”.');
+      return out('legis', sp, [seg(txt)], notes, warn, missing, 'rep:' + house + m[2] + '-' + m[3], { pin: m[4] || '', pinKind: 'page' });
+    }
+    // Bills and resolutions
+    var name = '', rest = s;
+    var nm = s.match(/^(.+?),\s*(?=H\.?\s?R\b|S\.?\s?(?:J|Con|Exec|Res)\b|S\.?\s*\d|House\b|Senate\b)/i);
+    if (nm) { name = nm[1]; rest = s.slice(nm[0].length); }
+    for (var i = 0; i < BILLS.length; i++) {
+      var bm = rest.match(BILLS[i][1]); if (!bm) continue;
+      var r = rest.slice(bm[0].length);
+      var mm = r.match(/^(?:No\.\s*)?(\d+)\s*,?\s*(?:(\d+)(?:st|nd|rd|th|d)?\s*Cong(?:ress|\.)?)?\s*,?\s*((?:§§?|sections?|secs?\.?)\s*[\w()]+)?\s*(\(.*\))?$/i);
+      if (!mm) continue;
+      var t2 = BILLS[i][0] + ' ' + mm[1];
+      if (mm[2]) t2 += ', ' + congressOrd(mm[2]); else missing.push('Congress number (“108th Cong.”)');
+      if (mm[3]) t2 += ' ' + mm[3].replace(/^(?:sections?|secs?\.?|§§?)\s*/i, SUB + ' ');
+      if (mm[4]) t2 += ' ' + normDate(mm[4], notes); else missing.push('year');
+      var segs = []; if (name) segs.push(seg(clean(name) + ', ')); segs.push(seg(t2));
+      if (segsText(segs) !== s) note(notes, 'R21.1', 'Bills and resolutions: “S. 812, 108th Cong. (2003)” with the abbreviations in R21.1.');
+      return out('legis', sp, segs, notes, warn, missing, 'bill:' + BILLS[i][0] + mm[1] + ':' + (mm[2] || ''), { pinKind: 'section' });
+    }
+    // Hearings (R21.4): "<Title>: Hearing on <bill> Before the <committee>, <n>th Cong. <pin> (<year>) (statement of ...)"
+    if ((m = s.match(/^(.+?:\s*Hearing\b.*?\bBefore the\s+.+?),\s*(\d+)(?:st|nd|rd|th|d)?\s*Cong(?:ress|\.)?\s*,?\s*(\d+(?:[-\u2013]\d+)?)?\s*\((\d{4})\)\s*(\(.*\))?$/i))) {
+      var title = m[1].replace(/\b(House of Representatives|Subcommittee|Committee|Senate|House|Congress)\b/g, function (w, x, off, all) {
+        // keep "Senate"/"House" only when part of a committee name: "S. Comm.", "H. Comm."
+        if ((w === 'Senate' || w === 'House') && !/^\s+(Comm|Subcomm|Committee|Subcommittee)/.test(all.slice(off + w.length))) return w;
+        return T5[w] || w;
+      }).replace(/\bon the\b/g, 'on the');
+      if (title !== m[1]) note(notes, 'R21.4.1', 'Committee names are abbreviated per Table T5.');
+      var segsH = [seg(title, true), seg(', ' + congressOrd(m[2]) + (m[3] ? ' ' + m[3] : '') + ' (' + m[4] + ')' + (m[5] ? ' ' + m[5] : ''))];
+      return out('legis', sp, segsH, notes, warn, missing, 'hrg:' + m[1].slice(0, 40), { pinKind: 'page' });
+    }
+    // State bills: "L.D. 3, 127th Leg., Reg. Sess. (Me. 2015)"
+    if ((m = s.match(/^((?:[A-Z]\.){1,3}\s?\d+|(?:A|S|H|Assemb|S\.B|H\.B|A\.B)\.?\s*\d+),\s*(\d+)(?:st|nd|rd|th|d)?\s*(?:Leg(?:islature|\.)?),?\s*(.+?)\s*\((.+?)\s+(\d{4})\)$/i))) {
+      var st = stateFrom(m[4]) || m[4];
+      var sess = m[3].replace(/Regular/i, 'Reg.').replace(/Special/i, 'Spec.').replace(/Session/i, 'Sess.');
+      var t3 = m[1] + ', ' + ordinal(m[2]) + ' Leg., ' + sess + ' (' + st + ' ' + m[5] + ')';
+      if (t3 !== s) note(notes, 'R21.3', 'State bills: “L.D. 3, 127th Leg., Reg. Sess. (Me. 2015)”.');
+      return out('legis', sp, [seg(t3)], notes, warn, missing, 'sbill:' + m[1]);
+    }
+    return null;
+  }
+
+  // ---------- restatements, U.C.C., uniform acts, guidelines (R18.2-18.4) ----------
+  var REST_ORD = { '1st': 'First', '2d': 'Second', '2nd': 'Second', '3d': 'Third', '3rd': 'Third', '4th': 'Fourth', first: 'First', second: 'Second', third: 'Third', fourth: 'Fourth' };
+  function parseSecondary(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var m;
+    if ((m = s.match(/^Restatement\s*\(?\s*(1st|2d|2nd|3d|3rd|4th|first|second|third|fourth)\s*\)?\s*(?:of\s+(?:the\s+)?)?(.+?)\s*,?\s*(?:§§?|sections?|secs?\.?)\s*([\w.()\-]+)\s*(?:,?\s*(?:comment|cmt\.?)\s*([a-z]+))?\s*(?:,?\s*(?:illustration|illus\.?)\s*(\d+))?\s*(\((.*)\))?$/i))) {
+      var ord = REST_ORD[m[1].toLowerCase()];
+      var subj = m[2].replace(/^the\s+/i, '').replace(/^Law of\s+/i, function (x) { return x; });
+      var subjFixed = subj.replace(/\bProperty\b/, 'Prop.');
+      var title = 'Restatement (' + ord + ') of ' + (/^(Law Governing Lawyers|the Law)/i.test(subj) ? 'the ' + subj.replace(/^the\s+/i, '') : subjFixed);
+      var txt = title + ' ' + SUB + ' ' + m[3] + (m[4] ? ' cmt. ' + m[4] : '') + (m[5] ? ' illus. ' + m[5] : '');
+      var paren = m[7] || '';
+      if (paren) { paren = paren.replace(/American Law Institute|Am\.?\s*Law\s*Inst\.?|ALI/i, 'Am. L. Inst.'); if (/^\d{4}$/.test(paren)) { warn.push('Indigo/Bluebook form names the publisher: “(Am. L. Inst. <year>)” (R18.2). Many courts still accept the year alone.'); } }
+      else missing.push('publisher and year (“Am. L. Inst. 1965”)');
+      txt += paren ? ' (' + paren + ')' : '';
+      if (txt !== s) note(notes, 'R18.2', 'Restatements: “Restatement (Second) of Torts § 402A cmt. c (Am. L. Inst. 1965)”, ordinal spelled out.');
+      return out('secondary', sp, [seg(txt)], notes, warn, missing, 'rst:' + title, { pin: m[3], pinKind: 'section', short: { sec: m[3] } });
+    }
+    if ((m = s.match(/^(?:U\.?\s?C\.?\s?C\.?|Uniform Commercial Code)\s*,?\s*(?:§§?|sections?|secs?\.?)?\s*(\d+-\d+[\w.()]*)\s*(\(.*\))?$/i))) {
+      var t2 = 'U.C.C. ' + SUB + ' ' + m[1] + (m[2] ? ' ' + m[2].replace(/American Law Institute/i, 'Am. L. Inst.').replace(/Uniform Law Commission/i, 'Unif. L. Comm' + AP + 'n') : '');
+      if (t2 !== s) note(notes, 'R18.3', 'Uniform Commercial Code: “U.C.C. § 9-105”.');
+      return out('secondary', sp, [seg(t2)], notes, warn, missing, 'ucc:', { pin: m[1], pinKind: 'section', short: { sec: m[1] } });
+    }
+    if ((m = s.match(/^(?:U\.?\s?S\.?\s?S\.?\s?G\.?|U\.?S\.? Sentencing Guidelines(?: Manual)?|(?:United States|U\.S\.|Federal) Sentencing Guidelines(?: Manual)?|Sentencing Guidelines)\s*,?\s*(?:§§?|sections?|secs?\.?)?\s*([\w.()]+)\s*(?:,?\s*(?:cmt\.|comment)\s*(n\.\s*\d+|\(n\.\s*\d+\)|note\s*\d+))?\s*(\(.*\))?$/i))) {
+      var cm = m[2] ? ' cmt. ' + m[2].replace(/[()]/g, '').replace(/^note\s*/i, 'n.').replace(/^n\.\s*/, 'n.') : '';
+      var t3 = 'U.S. Sentencing Guidelines Manual ' + SUB + ' ' + m[1] + cm + (m[3] ? ' ' + m[3].replace(/U\.?S\.? Sentencing Commission|United States Sentencing Commission/i, 'U.S. Sentencing Comm' + AP + 'n') : '');
+      if (!m[3]) warn.push('R18.4 adds the publisher and year: “(U.S. Sentencing Comm’n 2018)”. Many courts accept “U.S.S.G. § 2B1.1” for the current manual.');
+      if (t3 !== s) note(notes, 'R18.4', 'Sentencing Guidelines: “U.S. Sentencing Guidelines Manual § 6A1.5 (U.S. Sentencing Comm’n 2018)”.');
+      return out('secondary', sp, [seg(t3)], notes, warn, missing, 'ussg:', { pin: m[1], pinKind: 'section', short: { sec: m[1] } });
+    }
+    if ((m = s.match(/^(Unif(?:orm|\.)\s+.+?Act|Model\s+.+?(?:Act|Code|Rules?))\s*,?\s*(?:§§?|sections?|secs?\.?|r\.|rule)\s*([\w.()\-]+)\s*(\(.*\))?$/i))) {
+      var nm2 = m[1].replace(/^Uniform\s+/i, 'Unif. ').replace(/\bProfessional\b/, 'Pro.').replace(/\bConduct\b/, 'Conduct');
+      var isRule = /Model Rules/i.test(nm2);
+      var t4 = nm2 + (isRule ? ' r. ' : ' ' + SUB + ' ') + m[2] + (m[3] ? ' ' + m[3].replace(/Uniform Law Commission/i, 'Unif. L. Comm' + AP + 'n').replace(/American Bar Association/i, 'Am. Bar Ass' + AP + 'n') : '');
+      if (!m[3]) warn.push('Add the publisher and year in parentheses (R18.4).');
+      if (t4 !== s) note(notes, 'R18.4', 'Uniform and model acts follow the Restatement pattern with Table T11 abbreviations.');
+      return out('secondary', sp, [seg(t4)], notes, warn, missing, 'unif:' + nm2, { pin: m[2], pinKind: 'section', short: { sec: m[2] } });
+    }
+    return null;
+  }
+
+  // ---------- periodicals (R30, T11, T15) ----------
+  var T15 = { 'American Bar Association': 'A.B.A.', 'American Law Institute': 'A.L.I.', 'American University': 'Am. U.', 'Boston College': 'B.C.', 'Boston University': 'B.U.', 'Brigham Young University': 'BYU', Brooklyn: 'Brook.', Buffalo: 'Buff.', California: 'Calif.', Capital: 'Cap.', Chapman: 'Chap.', Cincinnati: 'Cin.', Cleveland: 'Clev.', Columbia: 'Colum.', Cumberland: 'Cumb.', Denver: 'Denv.', Detroit: 'Det.', Dickinson: 'Dick.', Duquesne: 'Duq.', 'George Mason': 'Geo. Mason', 'George Washington': 'Geo. Wash.', Georgetown: 'Geo.', Gonzaga: 'Gonz.', Harvard: 'Harv.', Howard: 'How.', 'John Marshall': 'J. Marshall', Loyola: 'Loy.', Marquette: 'Marq.', Memphis: 'Mem.', 'New England': 'New Eng.', 'New York University': 'N.Y.U.', Pepperdine: 'Pepp.', Pittsburgh: 'Pitt.', Richmond: 'Rich.', 'Saint Louis': 'St. Louis', 'Southern Methodist University': 'SMU', Stanford: 'Stan.', Temple: 'Temp.', 'Thomas Jefferson': 'T. Jefferson', Toledo: 'Tol.', Tulane: 'Tul.', 'University of California': 'U.C.', 'UCLA': 'UCLA', Valparaiso: 'Val.', Vanderbilt: 'Vand.', Villanova: 'Vill.', 'Washington & Lee': 'Wash. & Lee', 'William & Mary': 'Wm. & Mary', 'William Mitchell': 'Wm. Mitchell', Northwestern: 'Nw.', Southwestern: 'Sw.', Northeastern: 'Ne.', Southeastern: 'Se.', Western: 'W.', Eastern: 'E.', Northern: 'N.', Southern: 'S.' };
+  var JWORDS = { Law: 'L.', Review: 'Rev.', Journal: 'J.', Journals: 'J.', University: 'U.', Lawyer: 'Law.', Institute: 'Inst.', Environmental: 'Env' + AP + 't', Environment: 'Env' + AP + 't', Constitutional: 'Const.', Criminal: 'Crim.', Commercial: 'Com.', Quarterly: 'Q.', Studies: 'Stud.', Forum: 'F.', Annual: 'Ann.', Property: 'Prop.', Technology: 'Tech.', Intellectual: 'Intell.', Entertainment: 'Ent.', Bulletin: 'Bull.', Reporter: 'Rep.', Survey: 'Surv.', Ethics: 'Ethics', Health: 'Health', Legal: 'Legal', Policy: 'Pol' + AP + 'y', Yale: 'Yale', Chicago: 'Chi.', Michigan: 'Mich.', Virginia: 'Va.', Pennsylvania: 'Pa.', Texas: 'Tex.', Cornell: 'Cornell', Duke: 'Duke', Iowa: 'Iowa', Minnesota: 'Minn.', Fordham: 'Fordham', Emory: 'Emory', Notre: 'Notre', Dame: 'Dame' };
+  var KNOWN_J = { 'harvard law review': 'Harv. L. Rev.', 'yale law journal': 'Yale L.J.', 'columbia law review': 'Colum. L. Rev.', 'stanford law review': 'Stan. L. Rev.', 'university of chicago law review': 'U. Chi. L. Rev.', 'university of pennsylvania law review': 'U. Pa. L. Rev.', 'new york university law review': 'N.Y.U. L. Rev.', 'nyu law review': 'N.Y.U. L. Rev.', 'california law review': 'Calif. L. Rev.', 'michigan law review': 'Mich. L. Rev.', 'virginia law review': 'Va. L. Rev.', 'georgetown law journal': 'Geo. L.J.', 'duke law journal': 'Duke L.J.', 'texas law review': 'Tex. L. Rev.', 'cornell law review': 'Cornell L. Rev.', 'ucla law review': 'UCLA L. Rev.', 'northwestern university law review': 'Nw. U. L. Rev.', 'minnesota law review': 'Minn. L. Rev.', 'vanderbilt law review': 'Vand. L. Rev.', 'notre dame law review': 'Notre Dame L. Rev.', 'harvard journal of law & technology': 'Harv. J.L. & Tech.', 'harvard journal of law and technology': 'Harv. J.L. & Tech.', 'berkeley technology law journal': 'Berkeley Tech. L.J.', 'aba journal': 'A.B.A. J.', 'boston university law review': 'B.U. L. Rev.', 'fordham law review': 'Fordham L. Rev.', 'iowa law review': 'Iowa L. Rev.', 'emory law journal': 'Emory L.J.' };
+  function abbrJournal(name, notes) {
+    var s = clean(name).replace(/^The\s+/, '');
+    var k = s.toLowerCase().replace(/\s+/g, ' ');
+    if (KNOWN_J[k]) { if (KNOWN_J[k] !== s) note(notes, 'R30.3', 'Journal abbreviation: ' + s + ' \u2192 ' + KNOWN_J[k]); return KNOWN_J[k]; }
+    if (/\b[A-Z][a-z]*\.\s/.test(s + ' ') && !/\b(Law|Review|Journal)\b/.test(s)) return s; // already abbreviated
+    var t = s.replace(/\s*:.*$/, '');
+    Object.keys(T15).sort(function (a, b) { return b.length - a.length; }).forEach(function (inst) {
+      t = t.replace(new RegExp('\\b' + esc(inst) + '\\b', 'g'), '\u0001' + T15[inst] + '\u0002');
+    });
+    var words = t.split(/(\u0001[^\u0002]*\u0002|\s+)/).filter(function (w) { return w && !/^\s+$/.test(w); });
+    var outW = [];
+    words.forEach(function (w, i) {
+      if (w.charAt(0) === '\u0001') { outW.push({ t: w.slice(1, -1), inst: true }); return; }
+      if (/^(a|at|in|of|the)$/i.test(w) && i > 0) return;
+      if (w === 'and') { outW.push({ t: '&' }); return; }
+      if (w === 'Law' && i === 0) { outW.push({ t: w }); return; }
+      var a = JWORDS[w] || abbrWord(w) || (STATES[w] || CITIES_J[w]) || w;
+      outW.push({ t: a });
+    });
+    // close up adjacent single capitals (L. J. -> L.J.), but not institutional names (R30.3)
+    var res = '';
+    outW.forEach(function (w, i) {
+      var prev = outW[i - 1];
+      var single = /^[A-Z]\.$/.test(w.t), prevSingle = prev && /^[A-Z]\.$/.test(prev.t) && !prev.inst;
+      res += (i === 0 ? '' : (single && prevSingle && !w.inst ? '' : ' ')) + w.t;
+    });
+    if (res !== s) note(notes, 'R30.3', 'Journal title abbreviated with Tables T11 and T15: ' + s + ' \u2192 ' + res);
+    return res;
+  }
+  var CITIES_J = DATA.CITIES || {};
+  var AUTHOR_RE = /^(?:[A-Z][\w.'\u2019-]*\.?\s+){0,3}[A-Z][\w'\u2019-]+(?:,?\s+(?:Jr\.|Sr\.|II|III|IV))?(?:\s*(?:&|and)\s*(?:[A-Z][\w.'\u2019-]*\.?\s+){0,3}[A-Z][\w'\u2019-]+)*(?:\s+et al\.)?$/;
+  function authorShort(a) {
+    var parts = a.replace(/,\s*(Jr\.|Sr\.|II|III|IV)/g, '').split(/\s*&\s*|\s+and\s+/);
+    var last = function (n) { return n.trim().replace(/\s+et al\.$/, '').split(/\s+/).pop(); };
+    if (/et al\./.test(a) || parts.length > 2) return last(parts[0]) + ' et al.';
+    return parts.map(last).join(' & ');
+  }
+  function fixAuthors(a) { return clean(a).replace(/\s+and\s+/g, ' & ').replace(/\s*,\s*&/g, ' &'); }
+  function parsePeriodical(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    if (/\sv\.\s/.test(s) && !/,\s*\d+\s+[A-Z].*?\s\d+.*\(\d{4}\)$/.test(s)) {}
+    var m = s.match(/^(.*?),\s*(\d{1,4})\s+([A-Z][A-Za-z.&'\u2019 ]+?)\s+(\d{1,5})(?:,\s*([\d\-\u2013]+(?:\s*n\.\s*\d+)?))?\s*\((\d{4})\)$/);
+    if (m && !/\b(U\.S\.|F\.\s?\d|F\.\s?Supp|S\.\s?Ct\.|L\.\s?Ed|So\.|N\.E\.|N\.W\.|S\.E\.|S\.W\.|P\.\s?\d|A\.\s?\d|Cal\.\s?Rptr|U\.S\.C|C\.F\.R|Stat\.|Fed\.\s?Reg)/.test(m[3] + ' ') && /(L\.|Law|Rev|J\.|Journal|Q\.|Quarterly|F\.|Forum|Bull|Stud)/.test(m[3])) {
+      var pre = m[1].split(/,\s+/);
+      var author = '', desig = '';
+      if (pre.length > 1 && AUTHOR_RE.test(pre[0])) author = fixAuthors(pre.shift());
+      if (pre.length > 1 && /^(Note|Comment|Recent Case|Recent Development|Book Review|Essay)$/i.test(pre[0])) desig = pre.shift();
+      var title = pre.join(', ');
+      var j = abbrJournal(m[3], notes);
+      var segs = [];
+      if (author) segs.push(seg(author + ', '));
+      if (desig) segs.push(seg(desig.charAt(0).toUpperCase() + desig.slice(1) + ', '));
+      segs.push(seg(clean(title), true));
+      segs.push(seg(', ' + m[2] + ' ' + j + ' ' + m[4] + (m[5] ? ', ' + normPin(m[5], notes) : '') + ' (' + m[6] + ')'));
+      if (!m[5]) warn.push('Add a pin cite to the page you rely on (R30.1.1).');
+      if (!author && !desig) warn.push('Put the author first if the article is signed (R30.2).');
+      return out('journal', sp, segs, notes, warn, missing, 'jrnl:' + m[2] + j + m[4], { pin: m[5] || '', pinKind: 'page', short: { name: author ? authorShort(author) : '', title: title }, fields: { author: author, title: title } });
+    }
+    // Magazine / print newspaper with date: Author, Title, Pub., Nov. 24, 2014, at 13[, 17].
+    m = s.match(new RegExp('^(.*?),\\s*([^,]+?),\\s*(' + MONTH_RE.replace(/^\(/, '(?:') + '\\s*\\d{1,2},?\\s*\\d{4}|\\d{4}-\\d{2}-\\d{2}|\\d{1,2}\\/\\d{1,2}\\/\\d{4})\\s*,?\\s*(?:at|page|p\\.|pp\\.|section)\\s*([A-Z]?\\d+)(?:,\\s*([A-Z]?[\\d\\-\\u2013]+))?$', 'i'));
+    if (m) {
+      var pre2 = m[1].split(/,\s+/);
+      var author2 = '', des2 = '';
+      if (pre2.length > 1 && AUTHOR_RE.test(pre2[0])) author2 = fixAuthors(pre2.shift());
+      if (pre2.length > 1 && /^(Editorial|Opinion|Op-Ed|Letter to the Editor)$/i.test(pre2[0])) des2 = pre2.shift();
+      var title2 = pre2.join(', ');
+      var pub = abbrSite(m[2], notes);
+      var date = normDate(m[3], notes);
+      var pinP = m[5] ? m[5].toUpperCase() : '';
+      var segs2 = [];
+      if (author2) segs2.push(seg(author2 + ', '));
+      if (des2) segs2.push(seg(des2 + ', '));
+      segs2.push(seg(clean(title2), true));
+      segs2.push(seg(', ' + pub + ', ' + date + ', at ' + m[4].toUpperCase() + (pinP ? ', ' + pinP : '')));
+      if (!/,\s*at\s/.test(s)) note(notes, 'R30.4.1', 'Print articles end with “<date>, at <first page>”.');
+      return out('journal', sp, segs2, notes, warn, missing, 'print:' + pub + title2.slice(0, 30), { sub: 'print', pin: pinP, pinKind: 'page', short: { name: author2 ? authorShort(author2) : '', title: title2 }, fields: { author: author2, title: title2 } });
+    }
+    return null;
+  }
+
+  // ---------- books & non-periodicals (R28, T16) ----------
+  function normBookParen(p, notes) {
+    var t = clean(p);
+    t = t.replace(/\b(\d+)(?:st|nd|rd|th)\s+(?:edition|ed\.?)/i, function (a, n) { return ordinal(n) + ' ed.'; });
+    t = t.replace(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth)\s+(?:edition|ed\.?)/i, function (a, w) { return ordinal(ORDWORDS[w.toLowerCase()]) + ' ed.'; });
+    t = t.replace(/\brevised\s+edition\b/i, 'rev. ed.').replace(/\bedition\b/i, 'ed.');
+    t = t.replace(/\b(editors|eds)\.?(?=,|\s|$)/i, 'eds.').replace(/\b(editor|ed)\.?(?=,\s*\d)/i, 'ed.').replace(/\btranslator\.?|\btrans\.?(?=,)/i, 'trans.');
+    t = t.replace(/(^|[\s(])([A-Za-z][\w\u2019']*)\s+(eds?\.|trans\.)\s*,?\s*(?=\d)/, '$1$2 $3, ');
+    t = t.replace(/\s*,\s*(?=\d{4}$)/, function (x) { return /(eds?\.|trans\.)$/.test(t.slice(0, t.lastIndexOf(x))) ? ', ' : ' '; });
+    if (t !== clean(p)) note(notes, 'R28.2.5', 'Book parenthetical: editor, translator, edition and year (“12th ed. 2016”, “Leslie C. Levin & Lynn Mather eds., 2012”).');
+    return t;
+  }
+  function parseBook(text) {
+    var notes = [], warn = [], missing = [];
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    if (/https?:\/\//.test(s) || /\sv\.\s/.test(s)) return null;
+    var m = s.match(/^(?:(\d{1,3})\s+)?(.*?)\s*\(([^()]*\b\d{4}\b[^()]*)\)(\s*\(\d{4}\))?$/);
+    if (!m) return null;
+    var vol = m[1] || '', body = m[2], paren = m[3], orig = m[4] || '';
+    if (/\b(U\.S\.C|C\.F\.R|Fed\. Reg|Stat\.|Cong\.|Const\.|Rep\. No|Restatement|U\.C\.C)\b/.test(body)) return null;
+    var parts = body.split(/,\s+/);
+    var author = '';
+    if (parts.length > 1 && (AUTHOR_RE.test(parts[0]) || /^[A-Z][\w.\u2019' -]+ et al\.$/.test(parts[0]))) author = fixAuthors(parts.shift());
+    var rest = parts.join(', ');
+    // pincite after the title: "Title 472", "Title § 1.01[B]", "Title at 32", "Title, at 32", "Title p. 32"
+    var pin = '';
+    var pm = rest.match(/(?:,?\s+(?:at|p\.|pp\.|page|pages)\s+|\s+)((?:§§?\s*)?[\d][\w.\[\]\u2013\-]*(?:\s+at\s+[\d\u2013\-]+)?)$/i);
+    if (pm && (/(at|p\.|pp\.|page)\s/i.test(pm[0]) || /§/.test(pm[1]) || !/^\d{4}$/.test(pm[1]))) {
+      pin = pm[1]; rest = rest.slice(0, pm.index);
+      if (/\b(at|p\.|pp\.|page|pages)\s/i.test(pm[0])) note(notes, 'R28.2.4', 'In a full book citation the pin cite follows the title with no “at” or “p.”.');
+    }
+    if (!rest || rest.length < 3) return null;
+    var p2 = normBookParen(paren, notes);
+    var segs = [];
+    if (author) segs.push(seg((vol ? vol + ' ' : '') + author + ', ')); else if (vol) segs.push(seg(vol + ' '));
+    var inM = rest.match(/^(.+?),\s+in\s+(.+)$/);
+    if (inM) { segs.push(seg(inM[1], true)); segs.push(seg(', in ')); segs.push(seg(inM[2], true)); }
+    else segs.push(seg(rest, true));
+    segs.push(seg((pin ? ' ' + normPin(pin, notes) : '') + ' (' + p2 + ')' + orig));
+    if (!pin) warn.push('Add a pin cite (page or section) after the title (R28.2.4).');
+    if (!author && !/eds?\./.test(p2)) warn.push('Put the author first (R28.1).');
+    return out('book', sp, segs, notes, warn, missing, 'book:' + rest.slice(0, 40), { pin: pin, pinKind: /§/.test(pin) ? 'section' : 'page', short: { name: author ? authorShort(author) : '', title: rest }, fields: { author: author, title: rest } });
+  }
+
+  // ---------- documents from other cases (R25) ----------
+  function parseOtherCaseDoc(text) {
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    s = s.replace(/\s(?:vs\.?|versus)\s/, ' v. ');
+    if (!/\sv\.\s|In re\s/.test(s)) return null;
+    var DOC = /^(Compl\.|Complaint|Am\. Compl\.|Amended Complaint|Pl\.|Pls\.|Def\.|Defs\.|Plaintiff|Defendant|Pet\.|Petition|Br\.|Brief|Mot\.|Motion|Mem\.|Memorandum|Decl\.|Declaration|Aff\.|Affidavit|Oral Argument|Transcript of Oral Argument|Tr\.|Transcript|Resp\.|Response|Reply|Order|Answer)/i;
+    if (!DOC.test(s)) return null;
+    var idx = s.search(/,\s+(?=[A-Z][^,]*?\s(?:v\.|vs\.?)\s|In re\s)/);
+    if (idx < 0) return null;
+    var docPart = s.slice(0, idx), casePart = s.slice(idx).replace(/^,\s+/, '');
+    var isOral = /^Oral Argument|^Transcript of Oral Argument/i.test(docPart);
+    var doc = isOral ? { segs: [seg(docPart.replace(/\s+(?:at\s+)?(\d+:\d+|\d+)$/, ' at $1'))], notes: [] } : parseFiling(docPart);
+    if (!doc) return null;
+    // pull off the trailing docket / URL / database pieces
+    var tail = '', tm;
+    if ((tm = casePart.match(/,\s*(https?:\/\/\S+|\d{4}\s+WL\s+\d+|ECF No\.\s*\d+)$/))) { tail = ', ' + tm[1]; casePart = casePart.slice(0, tm.index); }
+    var dock = '';
+    if ((tm = casePart.match(/\s*\(((?:No|Civ\. No|Docket No)\.?\s*[^)]+)\)$/i))) { dock = ' (' + tm[1].replace(/^Docket No\.?/i, 'No.') + ')'; casePart = casePart.slice(0, tm.index); }
+    var cr = parseCase(casePart);
+    var caseSegs, notes = (doc.notes || []).slice(), warn = [], missing = [];
+    if (cr && cr.type === 'case') { caseSegs = cr.segs; notes = notes.concat(cr.notes || []); warn = warn.concat(cr.warn || []); missing = missing.concat((cr.missing || []).filter(function (x) { return !/pin/i.test(x); })); }
+    else {
+      // pending case: "Jones v. Smith, No. 09-230 (9th Cir. Apr. 17, 2015)"
+      var pm = casePart.match(/^(.+?),\s*(No\.\s*[\w:\-]+)\s*\(([^)]+)\)$/);
+      if (!pm) return null;
+      var court = parseCourt(pm[3].replace(/\s*[A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4}$|\s*\d{4}$/, ''));
+      var dt = (pm[3].match(/[A-Z][a-z]+\.?\s+\d{1,2},?\s+\d{4}$|\d{4}$/) || [''])[0];
+      caseSegs = [seg(normalizeCaseName(pm[1], {}, notes), true), seg(', ' + pm[2] + ' (' + [court && court.ok ? court.abbr : pm[3].replace(dt, '').trim(), normDate(dt, notes)].filter(Boolean).join(' ') + ')')];
+    }
+    if (!dock && !(cr && cr.fields && cr.fields.docket)) warn.push('Add the docket number in parentheses after the case (R25.1).');
+    note(notes, 'R25.1', 'Documents from another case: document and pin, then the case citation and docket number.');
+    var docSegs = (doc.segs || []).map(function (x, i, all) { return { t: i === all.length - 1 ? x.t.replace(/\.$/, '') : x.t, i: x.i }; });
+    var segs = docSegs.concat([seg(', ')], caseSegs.map(function (x, i) { return { t: i === caseSegs.length - 1 ? x.t.replace(/\.$/, '') : x.t, i: x.i }; }), [seg(dock + tail)]);
+    return out('othercase', sp, segs, notes, warn, missing, 'oc:' + segsText(docSegs).replace(/\s*(¶|\bat\b).*$/, '') + segsText(caseSegs).slice(0, 30), {});
+  }
+
+  // ---------- short forms in the input ----------
+  function parseShort(text) {
+    var sp = splitSignal(text);
+    var s = clean(sp.rest).replace(/\.$/, '');
+    var m;
+    if ((m = s.match(/^id\.?(?:\s*(?:,\s*)?at\s+(.+)|\s*(§§?\s*.+|¶¶?\s*.+))?$/i))) return { type: 'id', signal: sp.signal, pin: m[1] ? normPin(m[1]) : (m[2] || '').replace(/^§+\s*/, '').replace(/^¶+\s*/, ''), pinSym: m[2] ? (/^§/.test(m[2]) ? 'section' : 'para') : (m[1] ? 'page' : '') };
+    if ((m = s.match(new RegExp('^(.+?),\\s*(\\d{1,4})\\s+(' + REP_SORTED.map(function (r) { return reporterPattern(r[0]); }).join('|') + ')\\s+at\\s+(.+)$')))) {
+      var rep = canonReporter(m[3]);
+      return { type: 'caseShort', signal: sp.signal, name: m[1], vol: m[2], rep: rep ? rep[0] : m[3], pin: normPin(m[4]) };
+    }
+    if ((m = s.match(/^(.+?),\s*supra(?:\s+note\s+\d+)?(?:,?\s*at\s+(.+)|,\s*(§§?\s*.+))?$/i))) return { type: 'supra', signal: sp.signal, name: m[1], pin: m[2] ? normPin(m[2]) : (m[3] || '').replace(/^§+\s*/, '') };
+    if ((m = s.match(/^§§?\s*(.+)$/))) return { type: 'secShort', signal: sp.signal, sec: m[1] };
+    return null;
+  }
+
+  // ---------- single citation entry point ----------
+  function signalSegs(sig, first) {
+    if (!sig) return [];
+    var t = first ? sig : sig.charAt(0).toLowerCase() + sig.slice(1);
+    return [seg(t, true), seg(' ')];
+  }
+  function parseOne(text) {
+    var s = clean(text);
+    if (!s) return null;
+    var r = parseShort(s);
+    if (r) return r;
+    var looksUrlOnly = /^(https?:\/\/|www\.)\S+$/i.test(splitSignal(s).rest);
+    if (looksUrlOnly) return parseWeb(s);
+    r = parseRule(s); if (r) return r;
+    r = parseConst(s); if (r) return r;
+    r = parseTax(s); if (r) return r;
+    r = parseReg(s); if (r) return r;
+    r = parsePubL(s); if (r) return r;
+    r = parseLegis(s); if (r) return r;
+    r = parseSecondary(s); if (r) return r;
+    if (/U\.?\s*S\.?\s*C\.?|United States Code|U\.S\. Code/i.test(s)) { r = parseFedStatute(s); if (r) return r; }
+    r = parseStateStatute(s); if (r) return r;
+    r = parseOtherCaseDoc(s); if (r) return r;
+    r = parsePeriodical(s); if (r) return r;
+    r = parseCase(s); if (r) return r;
+    if (/https?:\/\//i.test(s)) { r = parseWeb(s); if (r) return r; }
+    r = parseFiling(s); if (r) return r;
+    r = parseBook(s); if (r) return r;
+    return { type: 'unknown', segs: [seg(s)], notes: [], warn: ['Could not tell the source type. Pick a type and fill in the fields.'], missing: [] };
+  }
+
+  // ---------- footnote sequence: Id. and short forms (R6.2, R15, R16.2, R26, R34) ----------
+  function splitCitations(fn) {
+    // split a footnote into citations at semicolons that are outside parentheses and quotes
+    var out = [], depth = 0, q = false, cur = '';
+    for (var i = 0; i < fn.length; i++) {
+      var c = fn[i];
+      if (c === '(' || c === '[') depth++;
+      else if (c === ')' || c === ']') depth = Math.max(0, depth - 1);
+      else if (c === '\u201C') q = true; else if (c === '\u201D') q = false; else if (c === '"') q = !q;
+      if (c === ';' && depth === 0 && !q) { out.push(cur); cur = ''; } else cur += c;
+    }
+    out.push(cur);
+    return out.map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+  function endWithPeriod(segs) {
+    var segs2 = segs.map(function (s) { return { t: s.t, i: s.i }; });
+    var last = segs2[segs2.length - 1];
+    if (!last) return segs2;
+    if (/[.)\]]$/.test(last.t) && /[)\]]$/.test(last.t) === false) return segs2;
+    if (/\.$/.test(last.t)) return segs2;
+    if (last.i) segs2.push(seg('.')); else last.t += '.';
+    return segs2;
+  }
+  function stripNumber(line) {
+    var m = line.match(/^\s*\d{1,3}([.):]?)\s+/);
+    if (!m) return line;
+    var rest = line.slice(m[0].length);
+    if (!m[1] && /^(U\.?\s*S\.?\s*C|C\.?\s*F\.?\s*R|Fed\.\s*Reg|[A-Z][a-z]*\.\s*Cons\.\s*Stat|U\.S\.\s*\d|S\.\s*Ct\.|F\.\s*(?:\d|Supp))/.test(rest)) return line;
+    return rest;
+  }
+  function sameSource(a, b) { return a && b && a.key && a.key === b.key; }
+
+  function analyze(footnotes) {
+    // footnotes: array of strings (or {text, segs} with italic info)
+    var history = []; // all full citations seen, in order
+    var prev = null;  // the previous footnote's citations
+    var results = [];
+    var lead = footnotes.map(function (raw) { var m = String(typeof raw === 'string' ? raw : raw.text).match(/^\s*(\d{1,3})[.):]?\s/); return m ? +m[1] : null; });
+    var numbered = footnotes.length > 1 && lead.every(function (n, i) { return n !== null && (i === 0 || n === lead[i - 1] + 1); });
+    if (footnotes.length === 1 && lead[0] !== null && /^\s*\d{1,3}[.)]\s/.test(typeof footnotes[0] === 'string' ? footnotes[0] : footnotes[0].text)) numbered = true;
+    footnotes.forEach(function (raw, fi) {
+      var text = typeof raw === 'string' ? raw : raw.text;
+      var body = numbered ? stripNumber(clean(text)) : clean(text);
+      var parts = splitCitations(body.replace(/\.\s*$/, ''));
+      var cites = [];
+      var items = parts.map(function (p, pi) {
+        var r = parseOne(p);
+        var item = { input: p, parsed: r, status: 'ok', reasons: [], warn: [], missing: [] };
+        if (!r) { item.status = 'review'; item.reasons.push({ rule: '', msg: 'Could not recognize this citation.' }); return item; }
+        // resolve short forms to a source
+        var src = null;
+        var prevSingle = (pi === 0) ? (prev && prev.length === 1 ? prev[0] : null) : (cites.length === 1 && pi === 1 ? null : null);
+        var prevInFn = pi > 0 ? cites[cites.length - 1] : null;
+        var immediate = pi > 0 ? prevInFn : prevSingle;
+        if (r.type === 'id') {
+          if (pi > 0 || !prev || prev.length !== 1) {
+            var target = pi > 0 ? prevInFn : (prev && prev.length ? prev[prev.length - 1] : null);
+            item.status = 'review';
+            item.keepInput = true;
+            item.warn.push(pi > 0 ? 'Id. cannot be used within the same footnote here.' : (prev && prev.length > 1 ? 'The preceding footnote cites several sources, so Id. cannot be used (R15.3.3). Name the source.' : 'There is no preceding footnote for Id. to refer to.'));
+            if (target) src = withPin(target, r.pin);
+          } else {
+            src = withPin(prev[0], r.pin || prev[0].pin || '');
+            src.pinSym = r.pinSym || prev[0].pinSym || undefined;
+            if (src.pinSym === undefined) src.pinSym = '';
+            if (r.pinSym === 'section' && src.type !== 'statute') {
+              var gs = null;
+              for (var h2 = history.length - 1; h2 >= 0; h2--) if (history[h2].type === 'statute') { gs = history[h2]; break; }
+              if (gs) { src = withPin(gs, r.pin); item.status = 'fix'; item.warn.push('Id. refers to a case in the preceding footnote, but “§” fits a statute. Assumed the statute cited earlier.'); }
+              else { item.status = 'review'; item.warn.push('The “§” after Id. does not match the immediately preceding authority.'); }
+            } else if (r.pinSym === 'page' && src.pinKind === 'section') {
+              // "Id. at 130" after a statute: likely meant an earlier case
+              var guess = null;
+              for (var h = history.length - 1; h >= 0; h--) if (history[h].type === 'case') { guess = history[h]; break; }
+              if (guess) {
+                src = withPin(guess, r.pin);
+                item.warn.push('Id. refers to the preceding footnote (' + segsText(prev[0].segs).slice(0, 40) + '…), but a page pin fits a case. Assumed the case cited earlier.');
+                item.status = 'fix';
+              } else { item.status = 'review'; item.warn.push('Id. refers to a statute but has a page pin (“at”).'); }
+            }
+          }
+        } else if (r.type === 'caseShort') {
+          for (var j = history.length - 1; j >= 0; j--) {
+            var hc = history[j];
+            if (hc.type === 'case' && hc.short && hc.short.vol === r.vol && hc.short.rep === r.rep) { src = withPin(hc, r.pin); break; }
+          }
+          if (!src) { item.status = 'review'; item.warn.push('Short form of a case never cited in full above (R15.2.1). Use a full citation the first time.'); }
+        } else if (r.type === 'supra') {
+          for (var k = history.length - 1; k >= 0; k--) {
+            var hw = history[k];
+            if ((hw.type === 'web' || hw.type === 'book' || hw.type === 'journal') && hw.short && (clean(hw.short.name || '').toLowerCase() === clean(r.name).toLowerCase() || clean(hw.short.title || '').toLowerCase() === clean(r.name).toLowerCase())) { src = withPin(hw, r.pin); break; }
+          }
+          if (!src) { item.status = 'review'; item.warn.push('Could not find the source this supra refers to. Do not use supra for cases or statutes (R6.2.3).'); }
+        } else if (r.type === 'secShort') {
+          for (var q2 = history.length - 1; q2 >= 0; q2--) if (history[q2].type === 'statute') { src = withPin(history[q2], r.sec); break; }
+          if (!src) { item.status = 'review'; item.warn.push('Could not find the statute this bare “§” refers to.'); }
+        } else if (r.type === 'unknown') {
+          item.status = 'review';
+        } else {
+          src = r;
+        }
+        if (!src) { item.out = r.segs ? r.segs : [seg(p)]; return item; }
+        if (item.keepInput) {
+          item.out = [seg('Id.', true), seg(p.replace(/^\s*id\.?/i, ''))];
+          cites.push(src);
+          return item;
+        }
+        // choose the right form for this position
+        var form = chooseForm(src, pi === 0 ? (prev && prev.length === 1 ? prev[0] : null) : null, history, pi > 0);
+        var sig = (r.signal || src.signal) ? signalSegs(r.signal || src.signal, pi === 0) : [];
+        if (sig.length && form.kind === 'id') form.segs = [seg('id.', true)].concat(form.segs.slice(1));
+        item.form = form.kind;
+        item.out = sig.concat(form.segs);
+        item.reasons = (r.notes || []).concat(form.reason ? [form.reason] : []);
+        item.warn = item.warn.concat(r.warn || []);
+        item.missing = (r.missing || []).slice();
+        if (form.kind !== 'full') item.missing = item.missing.filter(function (x) { return !/^(court|year|case name)$/.test(x); });
+        cites.push(src);
+        if (form.kind === 'full' || !history.some(function (h) { return sameSource(h, src); })) history.push(src);
+        return item;
+      });
+      // assemble suggested footnote
+      var segs = [];
+      items.forEach(function (it, i) {
+        if (i) segs.push(seg('; '));
+        segs = segs.concat(it.out || [seg(it.input)]);
+      });
+      segs = endWithPeriod(mergeSegs(segs));
+      var suggestion = segsText(segs);
+      var inputNorm = normForCompare(body);
+      var changed = normForCompare(suggestion) !== inputNorm;
+      var status = 'ok';
+      if (items.some(function (it) { return it.status === 'review'; }) || items.some(function (it) { return it.missing && it.missing.length; })) status = 'review';
+      else if (changed || items.some(function (it) { return it.status === 'fix'; })) status = 'fix';
+      // italics check when the input carried formatting
+      var italicIssues = [];
+      if (raw && typeof raw === 'object' && raw.segs && raw.segs.some(function (x) { return x.i; }) !== undefined && raw.hasFormat) {
+        italicIssues = compareItalics(raw.segs, segs);
+        if (italicIssues.length && status === 'ok') status = 'fix';
+      }
+      results.push({ index: fi + 1, input: body, segs: segs, text: suggestion, html: segsHTML(segs), status: status, items: items, changed: changed, italicIssues: italicIssues });
+      prev = cites.length ? cites : prev && cites.length === 0 && items.length === 0 ? prev : cites;
+    });
+    return results;
+  }
+  function withPin(src, pin) {
+    var c = Object.assign({}, src);
+    c.pin = pin === undefined || pin === '' ? '' : pin;
+    c._explicitPin = pin !== undefined && pin !== '';
+    return c;
+  }
+  function chooseForm(src, immediatePrev, history, inSameFn) {
+    var seen = history.some(function (h) { return sameSource(h, src); });
+    var pin = src.pin || '';
+    // Id. (R6.2.2, R15.3): only after a footnote citing exactly this one source
+    var userId = src.pinSym !== undefined;
+    if (!inSameFn && immediatePrev && sameSource(immediatePrev, src) && src.type !== 'rule' && !src.noId && (src.type !== 'filing' || userId)) {
+      var prevPin = immediatePrev.pin || '';
+      var idSegs = [seg('Id.', true)];
+      if (pin && (pin !== prevPin || src.type === 'filing')) {
+        var sym = src.pinSym || (src.pinKind === 'section' ? 'section' : 'page');
+        if (sym === 'section') idSegs.push(seg(' \u00A7 ' + pin));
+        else if (sym === 'para') idSegs.push(seg(' \u00B6 ' + pin));
+        else idSegs.push(seg(' at ' + pin));
+      } else if (!pin && prevPin && src.type === 'case') {
+        // same page as before
+      }
+      return { kind: 'id', segs: idSegs, reason: { rule: src.type === 'statute' ? 'R16.2' : src.type === 'filing' ? 'R26' : 'R15.3', msg: src.type === 'filing' ? 'Use Id. sparingly for litigation documents: only when it saves real space, and never for record (R.) cites.' : 'Same single source as the preceding footnote, so use Id.' } };
+    }
+    if (seen) {
+      if (src.type === 'case' && src.short) {
+        var sn = [seg(src.short.name, true), seg(', ' + src.short.vol + ' ' + src.short.rep + ' at ' + (pin || '___'))];
+        return { kind: 'short', segs: sn, reason: { rule: 'R15.2.2', msg: 'Case cited earlier, so use the short form (“Name, vol. reporter at page”).' + (pin ? '' : ' Add the pin cite.') } };
+      }
+      if (src.type === 'case' && src.wlShort) {
+        return { kind: 'short', segs: [seg(src.wlShort.name, true), seg(', ' + src.wlShort.cite + (pin ? ', at ' + pin : ''))], reason: { rule: 'R15.2.2', msg: 'Short form of a case cited earlier.' } };
+      }
+      if (src.type === 'web' && src.short && src.short.name) {
+        return { kind: 'short', segs: [seg(src.short.name, src.short.italic), seg(', '), seg('supra', true), seg(pin ? ', at ' + pin : '')], reason: { rule: 'R34', msg: 'An internet source cited earlier can be shortened to “Author, supra”.' } };
+      }
+      if ((src.type === 'book' || src.type === 'journal') && src.short) {
+        var nm = src.short.name ? [seg(src.short.name)] : [seg(src.short.title, true)];
+        var pp = pin ? (src.pinKind === 'section' || /^§/.test(pin) ? ', \u00A7 ' + pin.replace(/^§+\s*/, '') : ', at ' + pin) : '';
+        return { kind: 'short', segs: nm.concat([seg(', '), seg('supra', true), seg(pp)]), reason: { rule: src.type === 'book' ? 'R29.2' : 'R31.2', msg: 'Cited earlier but not in the preceding footnote, so use “Author, supra, at <page>”.' + (pin ? '' : ' Add the pin cite.') } };
+      }
+      if (src.type === 'reg' && src.short && src.short.cite) {
+        return { kind: 'short', segs: [seg(src.short.cite + ' at ' + (pin || '___'))], reason: { rule: 'R22.1', msg: 'Federal Register short form: “85 Fed. Reg. at <page>”.' } };
+      }
+      if (src.type === 'statute') {
+        var full = src.full || segsText(src.segs);
+        var withSec = src.pin && src.short && pin && pin !== src.short.sec ? full.replace(/(§§?\s*)[^\s(]+/, '$1' + pin) : full;
+        return { kind: 'full', segs: [seg(withSec)], reason: null };
+      }
+    }
+    if (src.type === 'filing' && src._explicitPin) {
+      var fullF = src.full || segsText(src.segs);
+      var sym2 = src.pinSym || (/¶/.test(fullF) ? 'para' : 'page');
+      var rep = sym2 === 'para' ? fullF.replace(/¶¶?\s*[\w\u2013-]+/, (/[-\u2013]/.test(pin) ? '\u00B6\u00B6 ' : '\u00B6 ') + pin) : fullF.replace(/\bat\s+[\w*\u2013-]+/, 'at ' + pin);
+      return { kind: 'full', segs: [seg(rep)], reason: src.noId ? { rule: 'R6.2.2', msg: 'Record (R.) cites are repeated in full, not replaced with Id.' } : null };
+    }
+    if (src.type === 'filing' && src.noId && src.pinSym !== undefined) {
+      return { kind: 'full', segs: src.segs, reason: { rule: 'R6.2.2', msg: 'Record (R.) cites are repeated in full, not replaced with Id.' } };
+    }
+    // full citation; for a case, apply the new pin
+    if (src.type === 'case' && src._explicitPin && src.fields) {
+      var f2 = Object.assign({}, src.fields, { pins: [pin] });
+      return { kind: 'full', segs: formatCase(f2, [], 0).segs.concat(), reason: null };
+    }
+    return { kind: 'full', segs: src.segs, reason: null };
+  }
+  function normForCompare(s) {
+    return clean(s).replace(/[\u2013\u2014]/g, '-').replace(/[\u201C\u201D]/g, '"').replace(/\s+/g, ' ').replace(/\.\s*$/, '').trim();
+  }
+  function italicRanges(segs) {
+    var pos = 0, r = [];
+    segs.forEach(function (s) { var t = normForCompare(s.t + 'x').slice(0, -1); if (s.i && s.t.trim()) r.push(s.t.trim()); pos += s.t.length; });
+    return r;
+  }
+  function compareItalics(inSegs, outSegs) {
+    var want = italicRanges(outSegs), have = italicRanges(inSegs);
+    var issues = [];
+    want.forEach(function (w) { if (!have.some(function (h) { return normForCompare(h).replace(/,$/, '') === normForCompare(w).replace(/,$/, ''); })) issues.push('“' + w + '” should be italic (R2.1).'); });
+    have.forEach(function (h) { if (/^,$/.test(h.trim())) issues.push('The comma after the case name is not italic (R11.2).'); });
+    return issues;
+  }
+
+  // single-citation conversion used by the converter screen
+  function convert(text) {
+    var r = parseOne(text);
+    if (!r) return null;
+    if (r.type === 'id' || r.type === 'caseShort' || r.type === 'supra' || r.type === 'secShort') {
+      return { type: 'short', segs: [seg(clean(text))], notes: [], warn: ['Id. and short forms depend on the preceding footnotes. Paste all your footnotes into the “Check footnotes” tab.'], missing: [] };
+    }
+    var segs = r.signal ? signalSegs(r.signal, true).concat(r.segs) : r.segs;
+    r.segs = endWithPeriod(mergeSegs(segs));
+    r.text = segsText(r.segs);
+    r.html = segsHTML(r.segs);
+    return r;
+  }
+
+  // word diff for the checker
+  function diff(a, b) {
+    var A = a.split(/(\s+)/), B = b.split(/(\s+)/);
+    var n = A.length, m = B.length, dp = [];
+    for (var i = 0; i <= n; i++) { dp.push(new Array(m + 1).fill(0)); }
+    for (i = n - 1; i >= 0; i--) for (var j = m - 1; j >= 0; j--) dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    var out = []; i = 0; j = 0;
+    while (i < n && j < m) {
+      if (A[i] === B[j]) { out.push({ op: '=', t: A[i] }); i++; j++; }
+      else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push({ op: '-', t: A[i] }); i++; }
+      else { out.push({ op: '+', t: B[j] }); j++; }
+    }
+    while (i < n) out.push({ op: '-', t: A[i++] });
+    while (j < m) out.push({ op: '+', t: B[j++] });
+    return out;
+  }
+
+  var API = {
+    convert: convert, parseOne: parseOne, analyze: analyze, formatWeb: formatWeb, formatCase: formatCase,
+    parseCourt: parseCourt, normalizeCaseName: normalizeCaseName, segsText: segsText, segsHTML: segsHTML, diff: diff,
+    siteFromUrl: siteFromUrl, dateFromUrl: dateFromUrl, titleFromUrl: titleFromUrl, normDate: normDate, clean: clean,
+    splitCitations: splitCitations, stripNumber: stripNumber, normForCompare: normForCompare,
+    setOption: function (k, v) { opts[k] = v; }, getOptions: function () { return Object.assign({}, opts); }
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.CiteEngine = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+<script>
+(function () {
+  'use strict';
+  var E = window.CiteEngine;
+  var $ = function (id) { return document.getElementById(id); };
+  function escH(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  var STATUS = { ok: 'Pass', fix: 'Suggested fix', review: 'Needs review' };
+  function tab(w) { ['check', 'insert'].forEach(function (k) { $('t-' + k).setAttribute('aria-selected', k === w); $('v-' + k).hidden = k !== w; }); }
+  $('t-check').onclick = function () { tab('check'); }; $('t-insert').onclick = function () { tab('insert'); };
+
+  // Turn Word's HTML for a footnote body into {text, segs} with italics.
+  function htmlToLine(html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html'), segs = [];
+    (function walk(n, it) {
+      if (n.nodeType === 3) { var t = n.nodeValue.replace(/\s+/g, ' '); if (t) segs.push({ t: t, i: it }); return; }
+      if (n.nodeType !== 1 || /^(STYLE|SCRIPT|HEAD|TITLE)$/.test(n.tagName)) return;
+      var st = (n.getAttribute('style') || '').toLowerCase();
+      var i2 = it || n.tagName === 'I' || n.tagName === 'EM' || /font-style\s*:\s*italic/.test(st);
+      if (/font-style\s*:\s*normal/.test(st)) i2 = false;
+      for (var c = n.firstChild; c; c = c.nextSibling) walk(c, i2);
+    })(doc.body, false);
+    var text = segs.map(function (s) { return s.t; }).join('').replace(/ /g, ' ').trim();
+    return { text: text, segs: segs, hasFormat: true };
+  }
+  function diffHTML(a, b) {
+    var ds = [];
+    E.diff(a, b).forEach(function (d) { var p = ds[ds.length - 1]; if (p && p.op === d.op) p.t += d.t; else ds.push({ op: d.op, t: d.t }); });
+    return ds.map(function (d) { var h = escH(d.t); return d.op === '=' ? h : d.op === '-' ? '<del>' + h + '</del>' : '<ins>' + h + '</ins>'; }).join('');
+  }
+
+  // Replace a footnote's text, keeping the reference mark, then italicize the right spans.
+  function writeSegs(ctx, body, segs) {
+    var para = body.paragraphs.getFirst();
+    var text = segs.map(function (s) { return s.t; }).join('');
+    var rng = para.getRange('Content');
+    var r = rng.insertText(text, 'Replace');
+    r.font.italic = false;
+    var queue = [];
+    segs.forEach(function (s) { if (s.i && s.t.trim()) { var hits = r.search(s.t.trim().slice(0, 250), { matchCase: true }); hits.load('items'); queue.push(hits); } });
+    return ctx.sync().then(function () { queue.forEach(function (h) { if (h.items.length) h.items[0].font.italic = true; }); return ctx.sync(); });
+  }
+
+  var last = [];
+  $('scan').onclick = function () {
+    $('status').textContent = 'Reading footnotes…';
+    Word.run(function (ctx) {
+      var fns = ctx.document.body.footnotes; fns.load('items');
+      return ctx.sync().then(function () {
+        var htmls = fns.items.map(function (f) { return f.body.getHtml(); });
+        return ctx.sync().then(function () {
+          var lines = htmls.map(function (h) { return htmlToLine(h.value); });
+          last = E.analyze(lines);
+          render();
+          $('status').textContent = fns.items.length ? 'Checked ' + fns.items.length + ' footnotes.' : 'This document has no footnotes yet.';
+        });
+      });
+    }).catch(function (e) { $('status').textContent = 'Could not read footnotes: ' + e.message; });
+  };
+  function render() {
+    var c = { ok: 0, fix: 0, review: 0 }; last.forEach(function (r) { c[r.status]++; });
+    $('summary').innerHTML = '<span class="pill ok">Pass ' + c.ok + '</span><span class="pill fix">Suggested fix ' + c.fix + '</span><span class="pill review">Needs review ' + c.review + '</span>';
+    $('applyAll').hidden = !c.fix;
+    $('results').innerHTML = last.map(function (r, i) {
+      var notes = '';
+      r.items.forEach(function (it) {
+        (it.missing || []).forEach(function (m) { notes += '<li><span class="tag">missing</span>' + escH(m) + '</li>'; });
+        (it.warn || []).forEach(function (m) { notes += '<li><span class="tag">check</span>' + escH(m) + '</li>'; });
+        (it.reasons || []).forEach(function (n) { if (r.changed) notes += '<li><span class="tag">' + escH(n.rule || '') + '</span>' + escH(n.msg) + '</li>'; });
+      });
+      (r.italicIssues || []).filter(function (m) { var q = m.match(/“([^”]+)”/); return !q || r.input.indexOf(q[1]) >= 0; }).forEach(function (m) { notes += '<li><span class="tag">R2.1</span>' + escH(m) + '</li>'; });
+      return '<div class="card ' + r.status + '"><div class="row"><span class="num">' + r.index + '</span><span class="pill ' + r.status + '">' + STATUS[r.status] + '</span><span style="flex:1"></span>' +
+        (r.status !== 'ok' ? '<button class="btn ghost small" data-apply="' + i + '">Apply</button><button class="btn ghost small" data-go="' + i + '">Go to</button>' : '') + '</div>' +
+        (r.status === 'ok' ? '<div class="cite">' + r.html + '</div>' : '<div class="diff">' + diffHTML(r.input, r.text) + '</div>') +
+        (notes ? '<ul class="notes">' + notes + '</ul>' : '') + '</div>';
+    }).join('');
+  }
+  function apply(indexes) {
+    return Word.run(function (ctx) {
+      var fns = ctx.document.body.footnotes; fns.load('items');
+      return ctx.sync().then(function () {
+        var p = Promise.resolve();
+        indexes.forEach(function (i) { p = p.then(function () { return writeSegs(ctx, fns.items[i].body, last[i].segs); }); });
+        return p;
+      });
+    }).then(function () { $('status').textContent = 'Applied ' + indexes.length + ' fix' + (indexes.length > 1 ? 'es' : '') + '. Use Undo in Word to revert.'; $('scan').onclick(); })
+      .catch(function (e) { $('status').textContent = 'Could not change the footnote: ' + e.message; });
+  }
+  $('results').addEventListener('click', function (e) {
+    var a = e.target.closest('[data-apply]'), g = e.target.closest('[data-go]');
+    if (a) apply([+a.getAttribute('data-apply')]);
+    if (g) Word.run(function (ctx) { var fns = ctx.document.body.footnotes; fns.load('items'); return ctx.sync().then(function () { fns.items[+g.getAttribute('data-go')].reference.select(); return ctx.sync(); }); });
+  });
+  $('applyAll').onclick = function () { apply(last.map(function (r, i) { return r.status === 'fix' ? i : -1; }).filter(function (i) { return i >= 0; })); };
+
+  // insert tab
+  var cur = null, deb;
+  function conv() {
+    var t = $('in').value; cur = t.trim() ? E.convert(t) : null;
+    $('out').innerHTML = cur ? cur.html : '<span style="color:var(--ink-3)">The formatted citation appears here.</span>';
+    var n = '';
+    if (cur) { (cur.missing || []).forEach(function (m) { n += '<li><span class="tag">missing</span>' + escH(m) + '</li>'; }); (cur.warn || []).forEach(function (m) { n += '<li><span class="tag">check</span>' + escH(m) + '</li>'; }); (cur.notes || []).forEach(function (x) { n += '<li><span class="tag">' + escH(x.rule) + '</span>' + escH(x.msg) + '</li>'; }); }
+    $('notes').innerHTML = n;
+  }
+  $('in').addEventListener('input', function () { clearTimeout(deb); deb = setTimeout(conv, 150); });
+  $('insertFn').onclick = function () {
+    if (!cur || !cur.segs) return;
+    // Pick Id./short form from the footnotes already in the document before the cursor.
+    Word.run(function (ctx) {
+      var fns = ctx.document.body.footnotes; fns.load('items');
+      return ctx.sync().then(function () {
+        var htmls = fns.items.map(function (f) { return f.body.getHtml(); });
+        return ctx.sync().then(function () {
+          var prior = htmls.map(function (h) { return htmlToLine(h.value); });
+          var res = E.analyze(prior.concat([cur.text]));
+          var segs = res[res.length - 1].segs;
+          var sel = ctx.document.getSelection();
+          var fn = sel.insertFootnote('');
+          return writeSegs(ctx, fn.body, segs).then(function () { $('status2').textContent = 'Inserted as footnote ' + (prior.length + 1) + ' (' + (res[res.length - 1].items[0].form || 'full') + ' form). If you inserted it before other footnotes, run the check again.'; });
+        });
+      });
+    }).catch(function (e) { $('status2').textContent = 'Could not insert: ' + e.message; });
+  };
+  conv();
+  Office.onReady(function (info) { if (info.host !== Office.HostType.Word) $('status').textContent = 'Open this add-in in Microsoft Word.'; });
+})();
+</script>
+</body>
+</html>
